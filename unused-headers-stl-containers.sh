@@ -27,5 +27,5 @@ for container in $containers; do
         | uniq -c \
         | grep ' 1 ' \
         | sed -e 's/^.*1 //g' \
-        | xargs grep --color -nH $container
+        | xargs grep --color -nH \\b$container\\b
 done
