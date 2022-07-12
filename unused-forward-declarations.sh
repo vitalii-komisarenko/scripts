@@ -11,7 +11,7 @@ grep -v '\.svn' |
 grep -v '\.git' |
 
 # Find all forward declarations
-xargs grep '^\s*class .*;$' |
+xargs grep -H '^\s*class .*;$' |
 
 # For each forward declaration
 while read -r line
