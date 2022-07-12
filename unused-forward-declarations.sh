@@ -5,8 +5,8 @@
 # This script does not modify files.
 
 
-# Get the list of files in a given directory
-find $1 -type f |
+# Get the list of files in a given directory(-ies)
+find "$@" -type f |
 grep -v '\.svn' |
 grep -v '\.git' |
 
