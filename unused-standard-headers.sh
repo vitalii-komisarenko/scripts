@@ -26,7 +26,14 @@ declare -A symbolsPerHeader=(
     [unordered_map]="unordered_map unordered_multimap"
     [string]="char_traits basic_string string u8string u16string u32string wstring getline stoi stol stoll stoul stoull stof stod stold to_string to_wstring"
     [chrono]="chrono" # not a symbol, just a word to search by grep
+    [sstream]="basic_stringbuf basic_istringstream basic_ostringstream basic_stringstream stringbuf wstringbuf istringstream wistringstream ostringstream wostringstream stringstream wstringstream"
+    [ios]="ios_base basic_ios ios wios fpos io_errc is_error_code_enum streamoff streamsize iostream_category make_error_code make_error_condition boolalpha noboolalpha showbase noshowbase showpoint noshowpoint showpos noshowpos skipws noskipws uppercase nouppercase unitbuf nounitbuf internal left right dec hex oct fixed scientific hexfloat defaultfloat"
+    [ostream]="basic_ostream ostream wostream endl ends flush emit_on_flush noemit_on_flush flush_emit"
+    [istream]="basic_istream istream wistream basic_iostream iostream wiostream ws"
+    [streambuf]="basic_streambuf streambuf wstreambuf"
 )
+
+symbolsPerHeader[iostream]+="cin wcin cout wcout cerr wcerr clog wclog ${symbolsPerHeader[ios]} ${symbolsPerHeader[streambuf]} ${symbolsPerHeader[istream]} ${symbolsPerHeader[ostream]}"
 
 for header in "${!symbolsPerHeader[@]}"; do
     echo
