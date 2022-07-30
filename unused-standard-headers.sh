@@ -1,31 +1,47 @@
 #!/bin/bash
 
-# Print a list of unused STL containers hedaers.
+# Print a list of unused standard headers.
 
 # This script does not modify files.
 
-# Internally it uses the fact that an STL container
-# and its header file often have the same name.
+# Internal logic:
+# 1. Check that a header exists
+# 2. Count the number of lines that contains one of the relevant words (symbols or the header name itself) in the file
+# 3. If the number is 1 (only the header name, no symbols defined there), report this file
 
 # Problems:
-# set and multiset are defined in <set>
-# map and multimap are defined in <map>
+# * Current implementation relies on the fact, that the name of one of the symbol is the same as the header name
 
-containers="array vector deque forward_list list \
-            stack queue priority_queue set map \
-            unordered_set unordered_map"
+declare -A symbolsPerHeader=(
+    [array]="array to_array"
+    [vector]="vector"
+    [deque]="deque"
+    [forward_list]="forward_list"
+    [list]="list"
+    [stack]="stack"
+    [queue]="queue priority_queue"
+    [set]="set multiset"
+    [map]="map multimap"
+    [unordered_set]="unordered_set unordered_multiset"
+    [unordered_map]="unordered_map unordered_multimap"
+    [string]="char_traits basic_string string u8string u16string u32string wstring getline stoi stol stoll stoul stoull stof stod stold to_string to_wstring"
+    [chrono]="chrono" # not a symbol, just a word to search by grep
+)
 
-for container in $containers; do
+for header in "${!symbolsPerHeader[@]}"; do
     echo
-    echo ==== $container ====
+    echo "==== $header ===="
     echo
-    grep -rnIH include..$container \
+
+    grep_pattern="\\b${symbolsPerHeader[$header]// /\\b\\|\\b}\\b"
+
+    grep -rnIH "include..$header" \
         | grep -v ^build \
         | cut -d : -f 1 \
-        | xargs grep -nH \\b$container\\b \
+        | xargs grep -nH "$grep_pattern" \
         | cut -d : -f 1 \
         | uniq -c \
         | grep ' 1 ' \
         | sed -e 's/^.*1 //g' \
-        | xargs grep --color -nH \\b$container\\b
+        | xargs grep --color -nH "\\b$header\\b"
 done
