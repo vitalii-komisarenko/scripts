@@ -26,6 +26,7 @@ declare -A symbolsPerHeader=(
     [streambuf]="basic_streambuf streambuf wstreambuf"
     [optional]="optional bad_optional_access nullopt_t make_optional"
     [thread]="this_thread thread jthread" # this_thread is a namespace
+    [regex]="regex_match regex_search regex_replace regex_iterator regex_token_iterator basic_regex match_results sub_match regex_traits regex_error regex wregex cmatch wcmatch smatch wsmatch csub_match wcsub_match ssub_match wssub_match regex_constants"
 )
 
 symbolsPerHeader[iostream]+="cin wcin cout wcout cerr wcerr clog wclog ${symbolsPerHeader[ios]} ${symbolsPerHeader[streambuf]} ${symbolsPerHeader[istream]} ${symbolsPerHeader[ostream]}"
