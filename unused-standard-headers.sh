@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# Print a list of unused standard headers.
+# Print unused standard headers.
+# Print unused forward declarations.
 
 # This script does not modify files.
 
@@ -41,6 +42,20 @@ function get_cpp_files() {
     done
 }
 
+function check_if_file_has_unused_forward_declarations() {
+    local file="$1"
+
+    # Find all forward declarations
+    local forward_declarations=$(grep '^\s*class .*;$' "$file" | sed -e 's/.*class //' -e 's/;$//')
+
+    for fwd_decl in $forward_declarations; do
+        # Remove all declarations from the file - forward or not
+        grep -v class "$file" |
+            # If the class name is not used, report it
+            grep -q "$fwd_decl" || echo "Useless forward declaration: $fwd_decl in file $file"
+    done
+}
+
 function check_if_header_is_unused_in_file() {
     local header="$1"
     local file="$2"
@@ -63,6 +78,8 @@ else
 fi
 
 for file in $cpp_files; do
+    check_if_file_has_unused_forward_declarations "$file"
+
     for header in "${!symbolsPerHeader[@]}"; do
         check_if_header_is_unused_in_file "$header" "$file"
     done
