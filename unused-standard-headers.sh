@@ -138,7 +138,7 @@ function check_if_header_is_unused_in_file() {
     local file="$2"
 
     # If the header is not included, just exit
-    grep -q "#include.*$header" "$file" || return
+    grep -q "#include\\s*.$header.\\s*$" "$file" || return
 
     grep_pattern="\\b${symbolsPerHeader[$header]// /\\b\\|\\b}\\b"
 
