@@ -107,6 +107,28 @@ symbolsPerHeader[valarray]+="${symbolsPerHeader[initializer_list]} valarray slic
 symbolsPerHeader[syncstream]+="${symbolsPerHeader[ostream]} basic_syncbuf basic_osyncstream syncbuf wsyncbuf osyncstream wosyncstream"
 symbolsPerHeader[filesystem]+="${symbolsPerHeader[compare]} path filesystem_error directory_entry directory_iterator recursive_directory_iterator file_status space_info file_type perms perm_options copy_options directory_options file_time_type filesystem"
 
+symbolsPerHeader['iso646.h']="and and_eq bitand bitor compl not not_eq or or_eq xor xor_eq"
+symbolsPerHeader['stdbool.h']="bool true false _Bool"
+
+symbolsPerHeader['assert.h']="${symbolsPerHeader[cassert]}"
+symbolsPerHeader['ctype.h']="${symbolsPerHeader[cctype]}"
+symbolsPerHeader['errno.h']="${symbolsPerHeader[cerrno]}"
+symbolsPerHeader['float.h']="${symbolsPerHeader[cfloat]}"
+symbolsPerHeader['limits.h']="${symbolsPerHeader[climits]}"
+symbolsPerHeader['locale.h']="${symbolsPerHeader[clocale]}"
+symbolsPerHeader['math.h']="${symbolsPerHeader[cmath]}"
+symbolsPerHeader['setjmp.h']="${symbolsPerHeader[csetjmp]}"
+symbolsPerHeader['signal.h']="${symbolsPerHeader[csignal]}"
+symbolsPerHeader['stdarg.h']="${symbolsPerHeader[cstdarg]}"
+symbolsPerHeader['stddef.h']="${symbolsPerHeader[cstddef]}"
+symbolsPerHeader['stdint.h']="${symbolsPerHeader[cstdint]}"
+symbolsPerHeader['stdio.h']="${symbolsPerHeader[cstdio]}"
+symbolsPerHeader['stdlib.h']="${symbolsPerHeader[cstdlib]}"
+symbolsPerHeader['string.h']="${symbolsPerHeader[cstring]}"
+symbolsPerHeader['time.h']="${symbolsPerHeader[ctime]}"
+symbolsPerHeader['wchar.h']="${symbolsPerHeader[cwchar]}"
+symbolsPerHeader['wctype.h']="${symbolsPerHeader[cwctype]}"
+
 function get_cpp_files() {
     for path in "$@"; do
         if [[ -f "$path" ]]; then
