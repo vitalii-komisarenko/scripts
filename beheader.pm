@@ -34,6 +34,29 @@ sub remove_brackets($$$) {
     return $text
 }
 
+sub parse_comma_separated_list($) {
+    my @res;
+    for (split /,/, shift) {
+        # Remove whitespace
+                s/\s//g;
+
+        # Skip if empty (the last enum element can have a trailing comma)
+        next if /^$/;
+
+        # Remove the enum numeric value
+        #
+        # typedef enum type1 {
+        #     ELEMENT_0 = 0,   ----> ELEMENT_0
+        #     ELEMENT_1 = 1,   ----> ELEMENT_1
+        # } type2;
+        s/=.*//;
+
+        # Add the enum element
+        push @res, $_;
+    }
+    @res;
+}
+
 sub extract_typedef_definitions($) {
     my @res;
 
@@ -45,30 +68,13 @@ sub extract_typedef_definitions($) {
 
         # typedef enum TYPE_1 { ... } TYPE_2;
         # typedef enum { ... } TYPE
-        if (/^typedef enum (\w*)\s*\{(.*)\} (\w+)$/) {
+        if (/^(typedef )?enum (\w*)\s*\{(.*)\}(.*)$/) {
             # Add the type names
-            push @res, $1 if $1;
-            push @res, $3;
+            push @res, $2 if $2;
+            push @res, parse_comma_separated_list($4);
 
-            # Iterate over enum elements
-            for (split /,/, $2) {
-                # Remove whitespace
-                s/\s//g;
-
-                # Skip if empty (the last element can have comma)
-                next if /^$/;
-
-                # Remove the numeric value, associated with the enum element
-                #
-                # typedef enum type1 {
-                #     ELEMENT_0 = 0,   ----> ELEMENT_0
-                #     ELEMENT_1 = 1,   ----> ELEMENT_1
-                # } type2;
-                s/=.*//;
-
-                # Add the enum element
-                push @res, $_;
-            }
+            # Enum elements
+            push @res, parse_comma_separated_list($3);
             next;
         }
 

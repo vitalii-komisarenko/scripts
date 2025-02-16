@@ -130,4 +130,16 @@ is_deeply(extract_definitions($file),
                               ["TYPE_1", "TYPE_2", "ELEMENT_1", "ELEMENT_2", "ELEMENT_3"],
                               "Enum 2 types, with trailing comma");
 
+$file = <<EOF
+enum {
+    ELEMENT_1 = 0,
+    ELEMENT_2,
+    ELEMENT_3,
+};
+EOF
+;
+is_deeply(extract_definitions($file),
+          ["ELEMENT_1", "ELEMENT_2", "ELEMENT_3"],
+          "Enum 0 types, with trailing comma");
+
 done_testing();
