@@ -191,6 +191,12 @@ sub extract_definitions($) {
             next;
         }
 
+        # Skip function calls
+        #
+        # Since () have been removed, it is just a single word
+        # A(B, C, D);  -->  A
+        next if /[\w:<>]+/;
+
         warn "Can't parse: $_";
     }
 

@@ -170,4 +170,6 @@ is_deeply(extract_definitions($file),
 is_deeply(extract_definitions("extern int x;"), ["x"], "Extern variable");
 is_deeply(extract_definitions("extern int x(char b);"), ["x"], "Extern function");
 
+is_deeply(extract_definitions("foo(42);"), [], "Function call"),
+
 done_testing();
