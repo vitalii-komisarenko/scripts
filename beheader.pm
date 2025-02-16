@@ -1,5 +1,6 @@
 use strict;
 use warnings;
+use File::Find;
 
 sub read_file($) {
     my $file = shift;
@@ -203,6 +204,64 @@ sub extract_definitions($) {
     return \@res;
 }
 
+sub extract_includes($) {
+    local $_ = shift;
+    my @paths;
+    push @paths, m/^\s*#include\s+"<.+>"/gm;
+    push @paths, m/^\s*#include\s+"(.+)"/gm;
+
+    # For the sake of simplicity, leave only file names
+    my @res = grep { s!.*/!!; } @paths;
+    return \@res;
+}
+
+sub extract_usages($) {
+    local $_ = shift;
+
+    # Remove preprocessor directives
+    s/^\s*#.*$//gm;
+
+    # Return any word as a usage
+    my @res = m/(\w+)/g;
+    return \@res;
+}
+
 unless (caller) {
-    print(join "\n", @{extract_definitions(read_file($ARGV[0]))}   );
+    my @paths;
+    grep { find(sub {push @paths, $File::Find::name}, $_) } @ARGV;
+
+    my %definitions;
+    my %includes;
+    my %usages;
+    for (@paths) {
+        next unless (/\.c$/ || /\.cpp$/ || /\.cc$/ || /\.h$/ || /\.hpp$/);
+
+        my $filename = $_;
+        $filename =~ s!.*/!!;
+
+        $includes{$filename} = extract_includes(read_file($_));
+        $definitions{$filename} = extract_definitions(read_file($_));
+        $usages{$filename} = extract_usages(read_file($_));
+    }
+
+    while (my ($filename, $headers) = each %includes) {
+        for my $header_filename (@$headers) {
+            # Skip external headers - we have no info about them
+            next unless exists $definitions{$header_filename};
+
+            my $header_is_used = 0;
+            for my $word (@{$usages{$filename}}) {
+                for my $definition (@{$definitions{$header_filename}}) {
+                    if ($word eq $definition) {
+                        $header_is_used = 1;
+                        last;
+                    }
+                }
+            }
+            unless ($header_is_used) {
+                print "$filename does not need $header_filename\n";
+                print "Header definitions: \n  ".join("\n  ", @{$definitions{$header_filename}}) . "  \n\n";
+            }
+        }
+    }
 }
