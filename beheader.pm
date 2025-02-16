@@ -1,0 +1,167 @@
+use strict;
+use warnings;
+
+sub read_file($) {
+    my $file = shift;
+    local $/ = undef;
+    open my $fh, "<", $file or die "could not open $file: $!";
+    <$fh>;
+}
+
+sub normalize_whitespaces($) {
+    local $_ = shift;
+
+    # Remove leading and trailing whitespace
+    s/^\s*//;
+    s/\s*$//;
+
+    # Replace multiple whitespaces with one character
+    s/\s+/ /g;
+
+    return $_;
+}
+
+sub remove_brackets($$$) {
+    my ($text, $opening, $closing) = @_;
+    while ($text =~ /\Q$opening/) {
+        unless (/\Q$closing/) {
+            warn "Can't find closing bracket: $closing";
+            last;
+        }
+        my $re = "\Q$opening" . "[^\Q$closing\E]*?\Q$closing";
+        $text =~ s/$re//g;
+    }
+    return $text
+}
+
+sub extract_typedef_definitions($) {
+    my @res;
+
+    for (split /;/, shift) {
+        # Not an enum
+        next unless /\benum\b/;
+
+        $_ = normalize_whitespaces($_);
+
+        # typedef enum TYPE_1 { ... } TYPE_2;
+        # typedef enum { ... } TYPE
+        if (/^typedef enum (\w*)\s*\{(.*)\} (\w+)$/) {
+            # Add the type names
+            push @res, $1 if $1;
+            push @res, $3;
+
+            # Iterate over enum elements
+            for (split /,/, $2) {
+                # Remove whitespace
+                s/\s//g;
+
+                # Skip if empty (the last element can have comma)
+                next if /^$/;
+
+                # Remove the numeric value, associated with the enum element
+                #
+                # typedef enum type1 {
+                #     ELEMENT_0 = 0,   ----> ELEMENT_0
+                #     ELEMENT_1 = 1,   ----> ELEMENT_1
+                # } type2;
+                s/=.*//;
+
+                # Add the enum element
+                push @res, $_;
+            }
+            next;
+        }
+
+        warn "Can't parse: $_";
+    }
+
+    return @res;
+}
+
+sub extract_definitions($) {
+    local $_ = shift;
+    my @res;
+
+    # #define A B
+    # #define A 
+    push @res, m/#define (\w+)/g;
+
+    # Remove preprocessor directives
+    s/^\s*#.*$//gm;
+
+    # Remove chars, so that we don't have to care about " being inside '
+    s/'.'//g;
+    s/'\\.'//g;
+
+    # Remove strings
+    s/".*?"//g;
+
+    # Remove comments
+    s!//.*$!!gm;
+    s!/\*.*?\*/!!gs;
+
+    # Remove everything inside () and []
+    $_ = remove_brackets($_, '(', ')');
+    $_ = remove_brackets($_, '[', ']');
+
+    push @res, extract_typedef_definitions($_);
+
+    # After parsing enums, we don't need curly brackets
+    # Remove everything inside {} to remove function bodies and struct memebers
+    $_ = remove_brackets($_, '{', '}');
+    # There is a bug in removing {} pairs, so remove trainling }
+    s/}.*//g;
+
+    # Replace * with spaces - to handle pointer types
+    s/\*/ /g;
+
+    # Parse individual statements
+    for (split /;/) {
+        # Skip empty statements
+        next if /^\s*$/;
+
+        # Enums have already been processed
+        next if /\benum\b/;
+
+        # Remove variable values
+        s/=.*//gs;
+
+        # Remove type modifiers
+        s/const//g;
+        s/static//g;
+        s/inline//g;
+
+        $_ = normalize_whitespaces($_);
+
+        # Variable declarations / function declarations
+        #
+        # Semicolons have been removed
+        # int a; ---> int a
+        #
+        # Round brackets and evenrything inside them have been removed
+        # int a(char b, long c); --> int a
+        if (/^\w+ (\w+)$/) {
+            push @res, $1;
+            next;
+        }
+
+        # Structs in typedef
+        #
+        # Due to removing unnecessary stuff, the scructs in typedef now look like this:
+        # typedef struct A { ... } B;   ---> typedef struct A B
+        # typedef struct { ... } B;     ---> typedef struct B
+        if (/typedef struct (\w*)\s*(\w+)$/) {
+            push @res, $1 if $1;
+            push @res, $2;
+            next;
+        }
+
+        warn "Can't parse: $_";
+    }
+
+    return \@res;
+}
+
+unless (caller) {
+    print(join "\n", @{extract_definitions(read_file($ARGV[0]))}   );
+}
