@@ -25,10 +25,12 @@ is_deeply(extract_definitions('#include "header.h"'), [], "Include statement - q
 is_deeply(extract_definitions("#include >header.h>"), [], "Include statement - brackets");
 is_deeply(extract_definitions("#ifdef foo"), [], "Ifdef");
 is_deeply(extract_definitions("#define foo"), ["foo"], "Define without value");
+is_deeply(extract_definitions("#define foo    "), ["foo"], "Define with trailing whitespace");
 is_deeply(extract_definitions("#define     foo"), ["foo"], "Define with extra spaces inside");
 is_deeply(extract_definitions("   #define foo"), ["foo"], "Define with spaces to the left");
 is_deeply(extract_definitions("\t#define\tfoo"), ["foo"], "Define with tabs");
 is_deeply(extract_definitions("#define foo bar"), ["foo"], "Define with value");
+is_deeply(extract_definitions("#define X\n#define Y"), ["X", "Y"], "Two defines");
 is_deeply(extract_definitions("struct foo;"), ["foo"], "Struct - forward declaration");
 is_deeply(extract_definitions("struct foo { int bar; }"), ["foo"], "Struct - definition");
 is_deeply(extract_definitions("struct foo {\n\tint bar; \n}"), ["foo"], "Struct - definition - multiline");
@@ -171,5 +173,18 @@ is_deeply(extract_definitions("extern int x;"), ["x"], "Extern variable");
 is_deeply(extract_definitions("extern int x(char b);"), ["x"], "Extern function");
 
 is_deeply(extract_definitions("foo(42);"), [], "Function call"),
+
+
+$file = <<EOF
+/* Comment */
+int x;
+/* Comment */
+/** Comment */
+#define Y
+char z;
+/** Comment */
+EOF
+;
+is_deeply(extract_definitions($file), ["Y", "x", "z"], "Multiline comments");
 
 done_testing();

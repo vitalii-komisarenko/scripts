@@ -91,7 +91,7 @@ sub extract_definitions($) {
 
     # #define A B
     # #define A 
-    push @res, m/^\s*#define\s+(\w+)/g;
+    push @res, m/^\s*#define\s+(\w+)/gm;
 
     # Remove preprocessor directives
     s/^\s*#.*$//gm;
