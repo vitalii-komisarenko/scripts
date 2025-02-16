@@ -164,6 +164,7 @@ EOF
 is_deeply(extract_definitions($file),
           ["foo", "bar"],
           "extern C");
-
+is_deeply(extract_definitions("extern int x;"), ["x"], "Extern variable");
+is_deeply(extract_definitions("extern int x(char b);"), ["x"], "Extern function");
 
 done_testing();

@@ -139,9 +139,10 @@ sub extract_definitions($) {
         s/=.*//gs;
 
         # Remove type modifiers
-        s/const//g;
-        s/static//g;
-        s/inline//g;
+        s/\bconst\b//g;
+        s/\bstatic\b//g;
+        s/\binline\b//g;
+        s/\bextern\b//g;
 
         # Template variables
         #
