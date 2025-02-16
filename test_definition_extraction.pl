@@ -142,4 +142,14 @@ is_deeply(extract_definitions($file),
           ["ELEMENT_1", "ELEMENT_2", "ELEMENT_3"],
           "Enum 0 types, with trailing comma");
 
+is_deeply(extract_definitions("std::vector<std::string> foo;"), ["foo"], "Template variable");
+is_deeply(extract_definitions("std::vector<std::string>foo;"), ["foo"], "Template variable - no spaces");
+is_deeply(extract_definitions("std::vector< std::string >foo;"), ["foo"], "Template variable - unexpected spaces");
+is_deeply(extract_definitions("std::vector< std::queue<std::string>> foo;"),
+          ["foo"],
+          "Template variable - nested");
+is_deeply(extract_definitions("std::vector< std::queue<std::string> > foo;"),
+          ["foo"],
+          "Template variable - nested - spaces between closing >");
+
 done_testing();

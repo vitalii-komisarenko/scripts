@@ -137,6 +137,20 @@ sub extract_definitions($) {
         s/static//g;
         s/inline//g;
 
+        # Template variables
+        #
+        # Remove spaces in the type, but leave space between the type and the variable
+        # Input examples:
+        # std::vector< std::queue<std::string>>foo
+        # std::vector<std::queue<std::string>  > foo
+        # Output:
+        # std::vector<std::queue<std::string>> foo
+        if (/>/) {
+            my ($left, $right) = $_ =~ /(.*>)(.*)/;
+            $left =~ s/\s*//g;
+            $_ = "$left $right";
+        }
+
         $_ = normalize_whitespaces($_);
 
         # Variable declarations / function declarations
@@ -146,7 +160,7 @@ sub extract_definitions($) {
         #
         # Round brackets and evenrything inside them have been removed
         # int a(char b, long c); --> int a
-        if (/^\w+ (\w+)$/) {
+        if (/^[\w:<>]+ ([\w<>]+)$/) {
             push @res, $1;
             next;
         }
