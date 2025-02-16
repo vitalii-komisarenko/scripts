@@ -61,6 +61,17 @@ is_deeply(extract_definitions($file),
           "Typedef struct - 1 type");
 
 $file = <<EOF
+typedef struct {
+    int a;
+    const char b;
+} abc_def;
+EOF
+;
+is_deeply(extract_definitions($file),
+          ["abc_def"],
+          "Typedef struct - 1 type - long name, underscore");
+
+$file = <<EOF
 typedef struct a {
     int x;
 } b;
@@ -173,7 +184,6 @@ is_deeply(extract_definitions("extern int x;"), ["x"], "Extern variable");
 is_deeply(extract_definitions("extern int x(char b);"), ["x"], "Extern function");
 
 is_deeply(extract_definitions("foo(42);"), [], "Function call"),
-
 
 $file = <<EOF
 /* Comment */

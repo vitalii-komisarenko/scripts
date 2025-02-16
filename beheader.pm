@@ -178,9 +178,13 @@ sub extract_definitions($) {
         # Due to removing unnecessary stuff, the structs in typedef now look like this:
         # typedef struct A { ... } B;   ---> typedef struct A B
         # typedef struct { ... } B;     ---> typedef struct B
-        if (/typedef struct (\w*)\s*(\w+)$/) {
-            push @res, $1 if $1;
-            push @res, $2;
+        if (/typedef struct (\w+) (\w+)$/) {
+            push @res, $1, $2;
+            next;
+        }
+
+        if (/typedef struct (\w+)$/) {
+            push @res, $1;
             next;
         }
 
