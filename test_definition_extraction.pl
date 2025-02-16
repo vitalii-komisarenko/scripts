@@ -154,4 +154,16 @@ is_deeply(extract_definitions("std::vector< std::queue<std::string> > foo;"),
           ["foo"],
           "Template variable - nested - spaces between closing >");
 
+$file = <<EOF
+extern "C" {
+int foo;
+struct bar {};
+}
+EOF
+;
+is_deeply(extract_definitions($file),
+          ["foo", "bar"],
+          "extern C");
+
+
 done_testing();

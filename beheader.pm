@@ -95,6 +95,12 @@ sub extract_definitions($) {
     # Remove preprocessor directives
     s/^\s*#.*$//gm;
 
+    # Remove extern "C" {
+    #
+    # One of the next steps it to remove all {} brackets pairs,
+    # so it is needed to preserve code in extern "C" blocks
+    s/\s*extern\s*"C"\s*{//gs;
+
     # Remove chars, so that we don't have to care about " being inside '
     s/'.'//g;
     s/'\\.'//g;
