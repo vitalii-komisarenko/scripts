@@ -25,6 +25,9 @@ is_deeply(extract_definitions('#include "header.h"'), [], "Include statement - q
 is_deeply(extract_definitions("#include >header.h>"), [], "Include statement - brackets");
 is_deeply(extract_definitions("#ifdef foo"), [], "Ifdef");
 is_deeply(extract_definitions("#define foo"), ["foo"], "Define without value");
+is_deeply(extract_definitions("#define     foo"), ["foo"], "Define with extra spaces inside");
+is_deeply(extract_definitions("   #define foo"), ["foo"], "Define with spaces to the left");
+is_deeply(extract_definitions("\t#define\tfoo"), ["foo"], "Define with tabs");
 is_deeply(extract_definitions("#define foo bar"), ["foo"], "Define with value");
 is_deeply(extract_definitions("struct foo;"), ["foo"], "Struct - forward declaration");
 is_deeply(extract_definitions("struct foo { int bar; }"), ["foo"], "Struct - definition");
