@@ -57,7 +57,7 @@ sub parse_comma_separated_list($) {
     @res;
 }
 
-sub extract_typedef_definitions($) {
+sub extract_enum_definitions($) {
     my @res;
 
     for (split /;/, shift) {
@@ -110,7 +110,7 @@ sub extract_definitions($) {
     $_ = remove_brackets($_, '(', ')');
     $_ = remove_brackets($_, '[', ']');
 
-    push @res, extract_typedef_definitions($_);
+    push @res, extract_enum_definitions($_);
 
     # After parsing enums, we don't need curly brackets
     # Remove everything inside {} to remove function bodies and struct memebers
@@ -167,11 +167,19 @@ sub extract_definitions($) {
 
         # Structs in typedef
         #
-        # Due to removing unnecessary stuff, the scructs in typedef now look like this:
+        # Due to removing unnecessary stuff, the structs in typedef now look like this:
         # typedef struct A { ... } B;   ---> typedef struct A B
         # typedef struct { ... } B;     ---> typedef struct B
         if (/typedef struct (\w*)\s*(\w+)$/) {
             push @res, $1 if $1;
+            push @res, $2;
+            next;
+        }
+
+        # Simple typedef
+        #
+        # typedef A B
+        if (/typedef ([\w:<>]+) (\w+)/) {
             push @res, $2;
             next;
         }

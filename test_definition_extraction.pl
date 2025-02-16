@@ -43,6 +43,8 @@ is_deeply(extract_definitions($file),
           ["a"],
           "Nested structs");
 
+is_deeply(extract_definitions("typedef int8_t INT_8;"), ["INT_8"], "Simple typedef");
+
 $file = <<EOF
 typedef struct {
     int x;
