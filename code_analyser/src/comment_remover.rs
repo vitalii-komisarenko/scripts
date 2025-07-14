@@ -11,7 +11,7 @@ enum ParserState {
     MultiLineCommentAsterisk,
 }
 
-fn remove_comments(file_content: &str) -> String {
+pub fn remove_comments(file_content: &str) -> String {
     let mut result: String = Default::default();
     let mut state: ParserState = ParserState::Normal;
     for ch in file_content.bytes() {
