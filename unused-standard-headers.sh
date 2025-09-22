@@ -136,7 +136,7 @@ function get_cpp_files() {
         elif [[ -d "$path" ]]; then
             find "$path" -name "*.c" -or -name "*.cpp" -or -name "*.tcc" -or -name "*.h" -or -name "*.hpp"
         else
-            echo "Neither ordinary file nor directory: $path"
+            echo "Neither ordinary file nor directory: $path" 1>&2
         fi
     done
 }
