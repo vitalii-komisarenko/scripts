@@ -171,12 +171,12 @@ function check_if_header_is_unused_in_file() {
 }
 
 if [[ -z "$@" ]]; then
-    cpp_files=$(get_cpp_files .)
+    paths=.
 else
-    cpp_files=$(get_cpp_files "$@")
+    paths="$@"
 fi
 
-for file in $cpp_files; do
+get_cpp_files $paths | while read -r file; do
     check_if_file_has_unused_forward_declarations "$file"
 
     for header in "${!symbolsPerHeader[@]}"; do
