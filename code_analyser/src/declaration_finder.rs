@@ -34,6 +34,70 @@ fn skip_to_operator(tokens: &Vec<Token>, i: &mut usize, operator: &str)
     }
 }
 
+fn skip_function(tokens: &Vec<Token>, i: &mut usize)
+{
+    // To handle function declarations and definitions, e.g.:
+    //
+    // int myFunc ( ... );
+    // int myFunc ( ... ) { ... }
+    //
+    // The pointer is at the "("
+
+    // 1. Check that we point at "("
+
+    if *i >= tokens.len()
+    {
+        panic!("skip_function: '(' expected, EOF found");
+    }
+
+    if let Token::Operator(s) = &tokens[*i]
+    {
+        if s != "("
+        {
+            panic!("skip_function: '(' expected, {:?} found", &tokens[*i]);
+        }
+    }
+    else
+    {
+        panic!("skip_function: '(' expected, {:?} found", &tokens[*i]);
+    }
+
+    // 2. Skip parameter list (round brackets)
+
+    *i += 1;
+    skip_to_operator(&tokens, i, ")");
+
+    // 3. Check if the next token if ';' or '{'
+
+    if *i >= tokens.len()
+    {
+        panic!("skip_function: ';' or '{{' expected, EOF found");
+    }
+
+    if let Token::Operator(s) = &tokens[*i]
+    {
+        match s.as_str()
+        {
+            ";" => {
+                // 4A. It is a function declaration. Skip ";"
+                *i += 1;
+                return;
+            },
+            "{" => {
+                // 4B. It is a function definition. Skip curly brackets
+                *i += 1;
+                skip_to_operator(&tokens, i, "}");
+                return;
+            }
+            _ => panic!("skip_function: ';' or '{{' expected, {:?} found", &tokens[*i]),
+        }
+    }
+    else
+    {
+        panic!("skip_function: ';' or '{{' expected, {:?} found", &tokens[*i]);
+    }
+}
+
 pub fn find_declarations(file_content: &str) -> Vec<String>
 {
     let mut content = remove_comments(file_content);
@@ -71,12 +135,11 @@ pub fn find_declarations(file_content: &str) -> Vec<String>
                 i += 1;
                 if let Token::Operator(s2) = &tokens[i]
                 {
-                    i += 1;
                     match s2.as_str()
                     {
-                        ";" => (),
+                        ";" => {i += 1},
                         "=" => skip_to_operator(&tokens, &mut i, ";"),
-                        "(" => skip_to_operator(&tokens, &mut i, ")"),
+                        "(" => skip_function(&tokens, &mut i),
                         _ => panic!("Unexpected operator: {}", s2),
                     }
                 }
