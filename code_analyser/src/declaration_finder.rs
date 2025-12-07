@@ -299,16 +299,36 @@ impl DeclarationFinder
                 self.pos += 1;
                 if let Token::Identifier(s1) = &self.tokens[self.pos]
                 {
-                    self.declarations.push(s1.to_string());
-                    self.pos += 1;
-                    if let Token::Operator(s2) = &self.tokens[self.pos]
+                    if s1 == "operator"
                     {
-                        match s2.as_str()
+                        self.skip_token(); // skip `operator` keyword
+                        loop
                         {
-                            ";" => {self.pos += 1},
-                            "=" => self.skip_to_operator(";"),
-                            "(" => self.skip_function(),
-                            _ => panic!("Unexpected operator: {}", s2),
+                            if self.eof()
+                            {
+                                panic!("find_declarations: EOF while skipping operator");
+                            }
+                            if *self.token() == Token::Operator("(".into())
+                            {
+                                break;
+                            }
+                            self.skip_token();
+                        }
+                        self.skip_function();
+                    }
+                    else
+                    {
+                        self.declarations.push(s1.to_string());
+                        self.pos += 1;
+                        if let Token::Operator(s2) = &self.tokens[self.pos]
+                        {
+                            match s2.as_str()
+                            {
+                                ";" => {self.pos += 1},
+                                "=" => self.skip_to_operator(";"),
+                                "(" => self.skip_function(),
+                                _ => panic!("Unexpected operator: {}", s2),
+                            }
                         }
                     }
                 }
@@ -495,5 +515,20 @@ int main()
 };
 ";
         assert_eq!(find_declarations(input), vec!["myClass", "main"]);
+    }
+
+    #[test]
+    fn test_operator() {
+        let input = "\
+struct S
+{
+    std::string name;
+};
+
+bool operator==(const S& lhs, const S& rhs)
+{
+    return lhs.name == rhs.name;
+}";
+        assert_eq!(find_declarations(input), vec!["S"]);
     }
 }
