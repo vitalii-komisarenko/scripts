@@ -229,7 +229,19 @@ impl DeclarationFinder
 
         self.skip_bracket_pair("(", ")");
 
-        // 3. Check if the next token if ';' or '{'
+        // 3. Skip __attribute__(( ... )) if needed
+
+        if self.eof()
+        {
+            panic!("skip_function: ';', '{{' or '__attribute__' expected, EOF found");
+        }
+
+        if *self.token() == Token::Identifier("__attribute__".into())
+        {
+            self.skip_attribute();
+        }
+
+        // 4. Check if the next token if ';' or '{'
 
         if self.eof()
         {
@@ -241,12 +253,12 @@ impl DeclarationFinder
             match s.as_str()
             {
                 ";" => {
-                    // 4A. It is a function declaration. Skip ";"
+                    // 5A. It is a function declaration. Skip ";"
                     self.skip_token();
                     return;
                 },
                 "{" => {
-                    // 4B. It is a function definition. Skip curly brackets
+                    // 5B. It is a function definition. Skip curly brackets
                     self.skip_token();
                     self.skip_to_operator("}");
                     return;
@@ -397,6 +409,10 @@ impl DeclarationFinder
                                 "(" => self.skip_function(),
                                 _ => panic!("Unexpected operator: {}", s2),
                             }
+                        }
+                        else
+                        {
+                            panic!("find_declarations: Unexpected token {:?}", self.token());
                         }
                     }
                 }
