@@ -91,6 +91,18 @@ impl DeclarationFinder
         self.skip_exact_token(&Token::Operator(operator.into()));
     }
 
+    fn skip_identifiier(&mut self, identifier: &str)
+    {
+        self.skip_exact_token(&Token::Identifier(identifier.into()));
+    }
+
+    /// skip __attribute__(( ...... ))
+    fn skip_attribute(&mut self)
+    {
+        self.skip_identifiier("__attribute__");
+        self.skip_bracket_pair("(", ")");
+    }
+
     /// Skip content inside `<` and `>` (including the closing `>`)
     fn skip_template(&mut self)
     {
@@ -248,6 +260,54 @@ impl DeclarationFinder
         }
     }
 
+    fn get_declaration(&mut self) -> String
+    {
+        let mut last_identifier: String = "".into();
+        let intermediate_operators = ["*", ":", "&"];
+        let final_operators = [";", "(", "="];
+
+        'outer: while !self.eof()
+        {
+            if let Token::Identifier(s) = self.token()
+            {
+                match s.as_str()
+                {
+                    "__attribute__" => self.skip_attribute(),
+                    _ => {
+                        last_identifier = s.clone();
+                        self.skip_token();
+                    }
+                }
+                continue;
+            }
+
+            for op in intermediate_operators
+            {
+                if *self.token() == Token::Operator(op.into())
+                {
+                    self.skip_token();
+                    continue 'outer;
+                }
+            }
+
+            for op in final_operators
+            {
+                if *self.token() == Token::Operator(op.into())
+                {
+                    if last_identifier == ""
+                    {
+                        panic!("get_declaration: No identifier");
+                    }
+                    return last_identifier;
+                }
+            }
+
+            panic!("get_declaration: Unexpected token: {:?}", self.token());
+        }
+
+        panic!("get_declaration: EOF");
+    }
+
     fn find_declarations(&mut self, file_content: &str)
     {
         self.declarations = get_preprocessor_definitions(file_content);
@@ -326,8 +386,8 @@ impl DeclarationFinder
                     }
                     else
                     {
-                        self.declarations.push(s1.to_string());
-                        self.pos += 1;
+                        let declaration = self.get_declaration();
+                        self.declarations.push(declaration);
                         if let Token::Operator(s2) = &self.tokens[self.pos]
                         {
                             match s2.as_str()
@@ -538,5 +598,23 @@ bool operator==(const S& lhs, const S& rhs)
     return lhs.name == rhs.name;
 }";
         assert_eq!(find_declarations(input), vec!["S"]);
+    }
+
+    #[test]
+    fn test_complex_types_c() {
+        let input = "\
+            const char a;
+            const char const b;
+            const const char *** const const const c;
+            const static char * * * const const d;
+            static const const char * * * const const e;
+            f; // implicit int
+            static inline __attribute__((noreturn)) g() {}
+            int	h __attribute__((unused)) = 3;
+            extern void exit(int)   __attribute__((noreturn));
+
+            int main() {}
+";
+        assert_eq!(find_declarations(input), vec!["a", "b", "c", "d", "e", "f", "g", "h", "exit", "main"]);
     }
 }
