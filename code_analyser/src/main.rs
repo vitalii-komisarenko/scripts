@@ -17,6 +17,9 @@ enum Task {
     RemoveComments,
     RemoveCommentsAndStrings,
     PrintIncludes,
+    PrintStandardIncludes,
+    PrintCustomIncludes,
+    PrintIncludesWithBrackets,
     PrintDeclarations,
 }
 
@@ -30,6 +33,12 @@ fn print_help() {
     println!("        Remove comments, strings and chars from a single C/C++/header file, prints output to the standard output");
     println!("    --print-includes <filename>");
     println!("        Print headers used in #include directives");
+    println!("    --print-standard-includes <filename>");
+    println!("        Print standard headers used in #include directives (headers inside <>)");
+    println!("    --print-custom-includes <filename>");
+    println!("        Print custom headers used in #include directives (headers inside \"\")");
+    println!("    --print-includes-with-brackets <filename>");
+    println!("        Print headers used in #include directives. Preserve <> and \"\"");
     println!("    --find-declarations <filename>");
     println!("        Print all declarations and definitions");
 }
@@ -45,6 +54,16 @@ fn read_file_content(path: &str) -> String
     return fs::read_to_string(path).unwrap();
 }
 
+fn read_single_file_content(file_names: Vec::<String>) -> String
+{
+    if file_names.len() != 1 {
+        println!("Only one file name expected");
+        process::exit(1);
+    }
+
+    read_file_content(file_names[0].as_str())
+}
+
 fn main() {
     let mut file_names = Vec::new();
     let mut task = Task::PrintHelp;
@@ -56,6 +75,9 @@ fn main() {
                 "--remove-comments" => task = Task::RemoveComments,
                 "--remove-comments-and-strings" => task = Task::RemoveCommentsAndStrings,
                 "--print-includes" => task = Task::PrintIncludes,
+                "--print-standard-includes" => task = Task::PrintStandardIncludes,
+                "--print-custom-includes" => task = Task::PrintCustomIncludes,
+                "--print-includes-with-brackets" => task = Task::PrintIncludesWithBrackets,
                 "--find-declarations" => task = Task::PrintDeclarations,
                 _ => {
                     print_help();
@@ -71,50 +93,44 @@ fn main() {
     match task {
         Task::PrintHelp => print_help(),
         Task::RemoveComments => {
-            if file_names.len() != 1 {
-                println!("Only one file name expected");
-                process::exit(1);
-            }
-            else {
-                let file_content = read_file_content(file_names[0].as_str());
-                let without_comments = comment_remover::remove_comments(file_content.as_str());
-                print!("{}", without_comments);
-            }
+            let file_content = read_single_file_content(file_names);
+            let without_comments = comment_remover::remove_comments(file_content.as_str());
+            print!("{}", without_comments);
         },
         Task::RemoveCommentsAndStrings => {
-            if file_names.len() != 1 {
-                println!("Only one file name expected");
-                process::exit(1);
-            }
-            else {
-                let file_content = read_file_content(file_names[0].as_str());
-                let without_comments = comment_remover::remove_comments(file_content.as_str());
-                let without_comments_and_strings = string_remover::remove_strings(&without_comments);
-                print!("{}", without_comments_and_strings);
-            }
+            let file_content = read_single_file_content(file_names);
+            let without_comments = comment_remover::remove_comments(file_content.as_str());
+            let without_comments_and_strings = string_remover::remove_strings(&without_comments);
+            print!("{}", without_comments_and_strings);
         },
         Task::PrintIncludes => {
-            if file_names.len() != 1 {
-                println!("Only one file name expected");
-                process::exit(1);
+            let file_content = read_single_file_content(file_names);
+            for header in preprocessor::get_includes(&file_content).into_iter() {
+                println!("{}", header);
             }
-            else {
-                let file_content = read_file_content(file_names[0].as_str());
-                for header in preprocessor::get_includes_with_brackets(&file_content).into_iter() {
-                    println!("{}", header);
-                }
+        },
+        Task::PrintStandardIncludes => {
+            let file_content = read_single_file_content(file_names);
+            for header in preprocessor::get_standards_includes(&file_content).into_iter() {
+                println!("{}", header);
+            }
+        },
+        Task::PrintCustomIncludes => {
+            let file_content = read_single_file_content(file_names);
+            for header in preprocessor::get_custom_includes(&file_content).into_iter() {
+                println!("{}", header);
+            }
+        },
+        Task::PrintIncludesWithBrackets => {
+            let file_content = read_single_file_content(file_names);
+            for header in preprocessor::get_includes_with_brackets(&file_content).into_iter() {
+                println!("{}", header);
             }
         },
         Task::PrintDeclarations => {
-            if file_names.len() != 1 {
-                println!("Only one file name expected");
-                process::exit(1);
-            }
-            else {
-                let file_content = read_file_content(file_names[0].as_str());
-                for header in declaration_finder::find_declarations(&file_content).into_iter() {
-                    println!("{}", header);
-                }
+            let file_content = read_single_file_content(file_names);
+            for header in declaration_finder::find_declarations(&file_content).into_iter() {
+                println!("{}", header);
             }
         },
     }

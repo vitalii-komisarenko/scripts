@@ -146,20 +146,49 @@ pub fn get_includes_with_brackets(file_content: &str) -> Vec<String>
     res
 }
 
-pub fn get_includes_without_brackets(file_content: &str) -> Vec<String>
+fn remove_first_and_last_char(s: String) -> String
+{
+    let mut chars = s.chars();
+    chars.next();
+    chars.next_back();
+    chars.as_str().to_string()
+}
+
+fn remove_first_and_last_char_from_each(vec: Vec<String>) -> Vec<String>
 {
     let mut res = Vec::<String>::new();
 
-    for inc in get_includes_with_brackets(file_content)
+    for s in vec
     {
-        let mut chars = inc.chars();
-        chars.next();
-        chars.next_back();
-        res.push(chars.as_str().to_string());
+        res.push(remove_first_and_last_char(s));
     }
 
     res
 }
+
+pub fn get_includes(file_content: &str) -> Vec<String>
+{
+    remove_first_and_last_char_from_each(get_includes_with_brackets(file_content))
+}
+
+pub fn get_custom_includes(file_content: &str) -> Vec<String>
+{
+    get_includes_with_brackets(file_content)
+        .into_iter()
+        .filter(|s| s.starts_with("\""))
+        .map(|s| remove_first_and_last_char(s))
+        .collect::<Vec<String>>()
+}
+
+pub fn get_standards_includes(file_content: &str) -> Vec<String>
+{
+    get_includes_with_brackets(file_content)
+        .into_iter()
+        .filter(|s| s.starts_with("<"))
+        .map(|s| remove_first_and_last_char(s))
+        .collect::<Vec<String>>()
+}
+
 
 #[cfg(test)]
 mod test
@@ -273,7 +302,7 @@ int main()
             "<vector>".to_string(),
             "<deque>".to_string(),
         ]);
-        assert_eq!(get_includes_without_brackets(input), vec![
+        assert_eq!(get_includes(input), vec![
             "iostream".to_string(),
             "file.h".to_string(),
             "string".to_string(),
@@ -281,6 +310,19 @@ int main()
             "2.h".to_string(),
             "a/b/c.hpp".to_string(),
             "abc.h".to_string(),
+            "vector".to_string(),
+            "deque".to_string(),
+        ]);
+        assert_eq!(get_custom_includes(input), vec![
+            "file.h".to_string(),
+            "a/b/c.hpp".to_string(),
+            "abc.h".to_string(),
+        ]);
+        assert_eq!(get_standards_includes(input), vec![
+            "iostream".to_string(),
+            "string".to_string(),
+            "string.h".to_string(),
+            "2.h".to_string(),
             "vector".to_string(),
             "deque".to_string(),
         ]);
