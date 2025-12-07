@@ -63,6 +63,15 @@ pub fn tokenize(file_content: &str) -> Vec<Token>
                 res.push(Token::LineContinuation(val.to_string()));   
             }
         }
+
+        for val in ["\n\r", "\r\n", "\n", "\r"].into_iter()
+        {
+            if s.starts_with(val)
+            {
+                s = &s[val.len()..];
+                res.push(Token::NewLine(val.to_string()));   
+            }
+        }
     }
 
     res
@@ -104,6 +113,16 @@ mod test {
         assert_eq!(tokenize(input), vec![
             Token::WhiteSpace(" \t  \t ".to_string()),
             Token::LineContinuation("\\\n".to_string()),
+            Token::WhiteSpace(" \t\t\t".to_string()),
+        ]);
+    }
+
+    #[test]
+    fn test_newline() {
+        let input = " \t  \t \n \t\t\t";
+        assert_eq!(tokenize(input), vec![
+            Token::WhiteSpace(" \t  \t ".to_string()),
+            Token::NewLine("\n".to_string()),
             Token::WhiteSpace(" \t\t\t".to_string()),
         ]);
     }
