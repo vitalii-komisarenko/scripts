@@ -204,7 +204,7 @@ impl DeclarationFinder
         panic!("skip_template_brackets: EOF");
     }
 
-    fn skip_to_operator(&mut self, operator: &str)
+    fn skip_to_operator_inclusive(&mut self, operator: &str)
     {
         while !self.eof()
         {
@@ -218,17 +218,17 @@ impl DeclarationFinder
                 else if s == "("
                 {
                     self.skip_token();
-                    self.skip_to_operator(")");
+                    self.skip_to_operator_inclusive(")");
                 }
                 else if s == "{"
                 {
                     self.skip_token();
-                    self.skip_to_operator("}");
+                    self.skip_to_operator_inclusive("}");
                 }
                 else if s == "["
                 {
                     self.skip_token();
-                    self.skip_to_operator("]");
+                    self.skip_to_operator_inclusive("]");
                 }
                 else
                 {
@@ -337,7 +337,7 @@ impl DeclarationFinder
                 "{" => {
                     // 5B. It is a function definition. Skip curly brackets
                     self.skip_token();
-                    self.skip_to_operator("}");
+                    self.skip_to_operator_inclusive("}");
                     return;
                 }
                 _ => panic!("skip_function: ';' or '{{' expected, {:?} found", self.token()),
@@ -451,17 +451,17 @@ impl DeclarationFinder
         if let Token::Identifier(s) = self.token()
         {
             match s.as_str(){
-                "namespace" => self.skip_to_operator(";"),
+                "namespace" => self.skip_to_operator_inclusive(";"),
                 _ => {
                     self.declarations.push(s.to_string());
-                    self.skip_to_operator(";");
+                    self.skip_to_operator_inclusive(";");
                 },
             }
         }
         else if *self.token() == Token::Operator(":".into())
         {
             // using ::some_namespace::some_type;
-            self.skip_to_operator(";");
+            self.skip_to_operator_inclusive(";");
         }
         else
         {
@@ -647,7 +647,7 @@ impl DeclarationFinder
                             match s2.as_str()
                             {
                                 ";" => {self.pos += 1},
-                                "=" => self.skip_to_operator(";"),
+                                "=" => self.skip_to_operator_inclusive(";"),
                                 "(" => self.skip_function(),
                                 _ => panic!("Unexpected operator: {}", s2),
                             }
