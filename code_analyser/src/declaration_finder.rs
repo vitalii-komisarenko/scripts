@@ -403,46 +403,70 @@ impl DeclarationFinder
         }
     }
 
-    fn process_class_or_struct(&mut self)
+    fn process_class_or_struct_without_semicolon(&mut self)
     {
         self.skip_token(); // skip `class`/`struct` keyword
         if self.eof()
         {
             panic!("process_class_or_struct: EOF while reading class/struct name");
         }
+
         if let Token::Identifier(s) = self.token()
         {
             self.declarations.push(s.to_string());
             self.skip_token(); // class/struct name already processed
+        }
 
-            while (*self.token() != Token::Operator(";".to_string())) && (*self.token() != Token::Operator("{".to_string()))
+        while (*self.token() != Token::Operator(";".to_string())) && (*self.token() != Token::Operator("{".to_string()))
+        {
+            if self.eof()
             {
-                if self.eof()
-                {
-                    panic!("process_class_or_struct: EOF while parsing class/struct: ';' or '{{' needed");
+                panic!("process_class_or_struct: EOF while parsing class/struct: ';' or '{{' needed");
+            }
+            self.skip_token();
+        }
+
+        if *self.token() == Token::Operator(";".to_string())
+        {
+            return;
+        }
+        else if *self.token() == Token::Operator("{".to_string())
+        {
+            self.skip_bracket_pair("{", "}");
+            return;
+        }
+        else
+        {
+            panic!("process_class_or_struct: unexpected token after class/struct name: {:?}", self.token());
+        }
+    }
+
+    fn process_class_or_struct(&mut self)
+    {
+        self.process_class_or_struct_without_semicolon();
+        self.skip_operator(";");
+    }
+
+    fn process_typedef(&mut self)
+    {
+        self.skip_identifier("typedef");
+        if let Token::Identifier(identifier) = self.token()
+        {
+            match identifier.as_str()
+            {
+                "struct" | "class" => self.process_class_or_struct_without_semicolon(),
+                _ => {
+                    if let Some(declaration) = self.get_declaration()
+                    {
+                        self.declarations.push(declaration);
+                    }
+                    self.skip_operator(";");
                 }
-                self.skip_token();
-            }
-
-            if *self.token() == Token::Operator(";".to_string())
-            {
-                self.skip_token();
-                return;
-            }
-            else if *self.token() == Token::Operator("{".to_string())
-            {
-                self.skip_bracket_pair("{", "}");
-                self.skip_operator(";");
-                return;
-            }
-            else
-            {
-                panic!("process_class_or_struct: unexpected token after class/struct name: {:?}", self.token());
             }
         }
         else
         {
-            panic!("process_class_or_struct: Unexpected token while reading class/struct name: {:?}", self.token())
+            panic!("Process typedef: Identifier expected, {:?} found", self.token());
         }
     }
 
@@ -463,6 +487,7 @@ impl DeclarationFinder
                     },
                     "using" => self.process_using(),
                     "class" | "struct" => self.process_class_or_struct(),
+                    "typedef" => self.process_typedef(),
                     _ => {
                         if let Some(declaration) = self.get_declaration()
                         {
