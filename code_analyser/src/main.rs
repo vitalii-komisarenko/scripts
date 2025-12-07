@@ -44,6 +44,8 @@ fn print_help() {
     println!("        Print all declarations and definitions");
     println!("    --print-unused-standard-headers");
     println!("        Print unused standards headers (headers inside <>)");
+    println!("");
+    println!("To skip identifiers, export them to SKIP_IDENTIFIERS, e.g. export SKIP_IDENTIFIERS=identifier1,identifier2,identifier3");
 }
 
 fn read_file_content(path: &str) -> String

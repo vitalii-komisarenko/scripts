@@ -2,6 +2,8 @@ use crate::tokenizer::Token;
 use crate::tokenizer::tokenize;
 use crate::preprocessor::get_preprocessor_definitions;
 
+use std::env;
+
 struct DeclarationFinder
 {
     tokens: Vec<Token>,
@@ -39,6 +41,19 @@ fn filter_tokens(input_tokens: Vec::<Token>) -> Vec::<Token>
     let mut res = Vec::<Token>::new();
     let mut is_in_preprocessor = false;
 
+    // Projects may define its macro that interfere with parsing
+    // One of examples would be codintionally use `final` keyword, e.g.:
+    //
+    // #ifdef BUILD_ON_TARGET
+    //   #define FINAL final
+    // #else // test build
+    //   #define FINAL
+    // #endif
+    //
+    // class A FINAL: class B {}
+    let binding = env::var("SKIP_IDENTIFIERS").unwrap_or("".to_string());
+    let identifiers_to_skip: Vec<&str> = binding.split(",").collect();
+
     'outer: for token in input_tokens.into_iter()
     {
         if is_in_preprocessor
@@ -68,6 +83,15 @@ fn filter_tokens(input_tokens: Vec::<Token>) -> Vec::<Token>
         else if let Token::Identifier(ref s) = token
         {
             for keyword in vec!["const", "final"]
+            {
+                if s == keyword
+                {
+                    // skip
+                    continue 'outer;
+                }
+            }
+
+            for keyword in &identifiers_to_skip
             {
                 if s == keyword
                 {
