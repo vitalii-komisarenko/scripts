@@ -9,6 +9,14 @@ struct DeclarationFinder
     declarations: Vec<String>,
 }
 
+impl DeclarationFinder
+{
+    fn eof(&self) -> bool
+    {
+        self.pos >= self.tokens.len()
+    }
+}
+
 /// Filter out unneeded tokens to simplify processing
 ///
 /// 1. Remove preprocessor directives
@@ -192,7 +200,7 @@ impl DeclarationFinder
         self.declarations = get_preprocessor_definitions(file_content);
         self.tokens = filter_tokens(tokenize(&file_content));
 
-        while self.pos < self.tokens.len()
+        while !self.eof()
         {
             if let Token::Identifier(s) = &self.tokens[self.pos]
             {
