@@ -32,6 +32,8 @@ enum Token
     // * std::vector<std::vector<int>>
     // * std::vector<std::vector<int> >
     Operator(String),
+    // Identifier, such as a variable name
+    Identifier(String),
 }
 
 
@@ -241,6 +243,28 @@ fn read_number(mut s: &str) -> String
 }
 
 
+fn read_identifier(mut s: &str) -> String
+{
+    let mut res = String::new();
+
+    while s.len() > 0
+    {
+        let ch = s.bytes().nth(0).unwrap();
+        if (b'0' <= ch && ch <= b'9') || (b'a' <= ch && ch <= b'z') || (b'A' <= ch && ch <= b'Z') || (ch == b'_')
+        {
+            res.push(ch as char);
+            s = &s[1..];
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    res
+}
+
+
 pub fn tokenize(file_content: &str) -> Vec<Token>
 {
     let mut s = file_content;
@@ -330,6 +354,15 @@ pub fn tokenize(file_content: &str) -> Vec<Token>
                 continue 'outer;
             }
         }
+
+        if (b'a' <= ch && ch <= b'z') || (b'A' <= ch && ch <= b'Z') || (ch == b'_')
+        {
+            let val = read_identifier(s);
+            s = &s[val.len()..];
+            res.push(Token::Identifier(val.to_string()));
+            continue 'outer;
+        }
+
 
         let val = &s[..1];
         s = &s[1..];
@@ -576,6 +609,47 @@ mod test {
             Token::WhiteSpace("  ".to_string()),
             Token::Operator("-".to_string()),
             Token::Number("123.456E+789".to_string()),
+            Token::WhiteSpace("    ".to_string()),
+        ]);
+    }
+
+    #[test]
+    fn test_identifier_1() {
+        let input = "  a    ";
+        assert_eq!(tokenize(input), vec![
+            Token::WhiteSpace("  ".to_string()),
+            Token::Identifier("a".to_string()),
+            Token::WhiteSpace("    ".to_string()),
+        ]);
+    }
+
+    #[test]
+    fn test_identifier_2() {
+        let input = "  a5    ";
+        assert_eq!(tokenize(input), vec![
+            Token::WhiteSpace("  ".to_string()),
+            Token::Identifier("a5".to_string()),
+            Token::WhiteSpace("    ".to_string()),
+        ]);
+    }
+
+
+    #[test]
+    fn test_identifier_3() {
+        let input = "  _    ";
+        assert_eq!(tokenize(input), vec![
+            Token::WhiteSpace("  ".to_string()),
+            Token::Identifier("_".to_string()),
+            Token::WhiteSpace("    ".to_string()),
+        ]);
+    }
+
+    #[test]
+    fn test_identifier_4() {
+        let input = "  Z_z    ";
+        assert_eq!(tokenize(input), vec![
+            Token::WhiteSpace("  ".to_string()),
+            Token::Identifier("Z_z".to_string()),
             Token::WhiteSpace("    ".to_string()),
         ]);
     }
