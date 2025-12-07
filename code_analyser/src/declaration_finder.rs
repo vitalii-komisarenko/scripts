@@ -383,35 +383,32 @@ impl DeclarationFinder
             }
             else if let Token::Identifier(s) = &self.tokens[self.pos]
             {
-                self.pos += 1;
-                if let Token::Identifier(s1) = &self.tokens[self.pos]
+                // If next token is `operator`
+                if (self.pos < self.tokens.len() + 1) && (self.tokens[self.pos + 1] == Token::Identifier("operator".into()))
                 {
-                    if s1 == "operator"
+                    self.skip_token(); // skip return type
+                    self.skip_identifier("operator");
+                    self.skip_to_operator("(");
+                    self.pos -= 1;
+                    self.skip_function();
+                    continue;
+                }
+
+                let declaration = self.get_declaration();
+                self.declarations.push(declaration);
+                if let Token::Operator(s2) = &self.tokens[self.pos]
+                {
+                    match s2.as_str()
                     {
-                        self.skip_identifier("operator");
-                        self.skip_to_operator("(");
-                        self.pos -= 1;
-                        self.skip_function();
+                        ";" => {self.pos += 1},
+                        "=" => self.skip_to_operator(";"),
+                        "(" => self.skip_function(),
+                        _ => panic!("Unexpected operator: {}", s2),
                     }
-                    else
-                    {
-                        let declaration = self.get_declaration();
-                        self.declarations.push(declaration);
-                        if let Token::Operator(s2) = &self.tokens[self.pos]
-                        {
-                            match s2.as_str()
-                            {
-                                ";" => {self.pos += 1},
-                                "=" => self.skip_to_operator(";"),
-                                "(" => self.skip_function(),
-                                _ => panic!("Unexpected operator: {}", s2),
-                            }
-                        }
-                        else
-                        {
-                            panic!("find_declarations: Unexpected token {:?}", self.token());
-                        }
-                    }
+                }
+                else
+                {
+                    panic!("find_declarations: Unexpected token {:?}", self.token());
                 }
             }
             else if let Token::Operator(s) = &self.tokens[self.pos]
