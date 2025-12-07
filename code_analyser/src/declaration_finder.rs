@@ -279,7 +279,7 @@ impl DeclarationFinder
         }
     }
 
-    fn get_declaration(&mut self) -> String
+    fn get_declaration(&mut self) -> Option<String>
     {
         let mut last_identifier: String = "".into();
         let intermediate_operators = ["*", ":", "&"];
@@ -292,6 +292,48 @@ impl DeclarationFinder
                 match s.as_str()
                 {
                     "__attribute__" => self.skip_attribute(),
+                    "operator" => {
+                        // We need to check if `operator` is a variable name in C or an operator in C++
+                        if self.pos < self.tokens.len() - 1
+                        {
+                            if let Token::Operator(s) = &self.tokens[self.pos + 1]
+                            {
+                                match s.as_str()
+                                {
+                                    ";" | "(" => {
+                                        // It is a declaration of variable `operator` or function `operator( ... )`
+                                        last_identifier = "operator".into();
+                                        self.skip_token();
+                                        continue;
+                                    },
+                                    "=" => {
+                                        if (self.pos < self.tokens.len() - 1) && (self.tokens[self.pos + 2] == Token::Operator("=".into()))
+                                        {
+                                            // It is `operator ==`
+                                            self.skip_token();
+                                            last_identifier = "".into();
+                                            continue;
+                                        }
+                                        else {
+                                            // It is assignemnt to variable `operator`
+                                            last_identifier = "operator".into();
+                                            self.skip_token();
+                                            continue;
+                                        }
+                                    },
+                                    _ => {
+                                        // It is an operator overload in C++
+                                        self.skip_token();
+                                        last_identifier = "".into();
+                                        continue;
+                                    }
+                                }
+                            }
+                            else {
+                                panic!();
+                            }
+                        }
+                    },
                     _ => {
                         last_identifier = s.clone();
                         self.skip_token();
@@ -315,9 +357,9 @@ impl DeclarationFinder
                 {
                     if last_identifier == ""
                     {
-                        panic!("get_declaration: No identifier");
+                        return None;
                     }
-                    return last_identifier;
+                    return Some(last_identifier);
                 }
             }
 
@@ -383,19 +425,11 @@ impl DeclarationFinder
             }
             else if let Token::Identifier(s) = &self.tokens[self.pos]
             {
-                // If next token is `operator`
-                if (self.pos < self.tokens.len() + 1) && (self.tokens[self.pos + 1] == Token::Identifier("operator".into()))
+                if let Some(declaration) = self.get_declaration()
                 {
-                    self.skip_token(); // skip return type
-                    self.skip_identifier("operator");
-                    self.skip_to_operator("(");
-                    self.pos -= 1;
-                    self.skip_function();
-                    continue;
+                    self.declarations.push(declaration);
                 }
 
-                let declaration = self.get_declaration();
-                self.declarations.push(declaration);
                 if let Token::Operator(s2) = &self.tokens[self.pos]
                 {
                     match s2.as_str()
@@ -626,5 +660,47 @@ bool operator==(const S& lhs, const S& rhs)
             int main() {}
 ";
         assert_eq!(find_declarations(input), vec!["a", "b", "c", "d", "e", "f", "g", "h", "exit", "main"]);
+    }
+
+    #[test]
+    fn test_operator_keyword_in_c_1() {
+        let input = "operator;";
+        assert_eq!(find_declarations(input), vec!["operator"]);
+    }
+
+    #[test]
+    fn test_operator_keyword_in_c_2() {
+        let input = "float operator;";
+        assert_eq!(find_declarations(input), vec!["operator"]);
+    }
+
+    #[test]
+    fn test_operator_keyword_in_c_3() {
+        let input = "const const const operator;";
+        assert_eq!(find_declarations(input), vec!["operator"]);
+    }
+
+    #[test]
+    fn test_operator_keyword_in_c_4() {
+        let input = "const const int operator = 123;";
+        assert_eq!(find_declarations(input), vec!["operator"]);
+    }
+
+    #[test]
+    fn test_operator_keyword_in_c_5() {
+        let input = "operator();";
+        assert_eq!(find_declarations(input), vec!["operator"]);
+    }
+
+    #[test]
+    fn test_operator_keyword_in_c_6() {
+        let input = "void operator();";
+        assert_eq!(find_declarations(input), vec!["operator"]);
+    }
+
+    #[test]
+    fn test_operator_keyword_in_c_7() {
+        let input = "const const const char * operator();";
+        assert_eq!(find_declarations(input), vec!["operator"]);
     }
 }
