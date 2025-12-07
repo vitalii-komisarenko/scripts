@@ -889,4 +889,13 @@ bool operator==(const S& lhs, const S& rhs)
         ";
         assert_eq!(find_declarations(input), vec!["t", "a", "b", "c", "aa", "bb", "cc", "main"]);
     }
+
+    #[test]
+    fn test_unnecessary_semicolon() {
+        let input = "
+            ;
+            int main() {}
+        ";
+        assert_eq!(find_declarations(input), vec!["main"]);
+    }
 }
