@@ -765,4 +765,32 @@ bool operator==(const S& lhs, const S& rhs)
         ";
         assert_eq!(find_declarations(input), vec!["myType", "myVector", "main"]);
     }
+
+    #[test]
+    fn test_typedef() {
+        let input = "
+            #include <stdio.h>
+
+            typedef int t;
+
+            typedef struct a
+            {
+                int a;
+            } b;
+
+            typedef struct {
+                int x;
+            } c;
+
+            struct a aa;
+            b bb;
+            c cc;
+
+            void main() {
+                t x = 5;
+                printf(\"%d\\n\", x);
+            }
+        ";
+        assert_eq!(find_declarations(input), vec!["t", "a", "b", "c", "aa", "bb", "cc", "main"]);
+    }
 }
