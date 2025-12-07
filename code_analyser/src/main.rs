@@ -21,6 +21,7 @@ enum Task {
     PrintCustomIncludes,
     PrintIncludesWithBrackets,
     PrintDeclarations,
+    PrintUnusedStandardHeaders,
 }
 
 fn print_help() {
@@ -41,6 +42,8 @@ fn print_help() {
     println!("        Print headers used in #include directives. Preserve <> and \"\"");
     println!("    --find-declarations <filename>");
     println!("        Print all declarations and definitions");
+    println!("    --print-unused-standard-headers");
+    println!("        Print unused standards headers (headers inside <>)");
 }
 
 fn read_file_content(path: &str) -> String
@@ -79,6 +82,7 @@ fn main() {
                 "--print-custom-includes" => task = Task::PrintCustomIncludes,
                 "--print-includes-with-brackets" => task = Task::PrintIncludesWithBrackets,
                 "--find-declarations" => task = Task::PrintDeclarations,
+                "--print-unused-standard-headers" => task = Task::PrintUnusedStandardHeaders,
                 _ => {
                     print_help();
                     process::exit(1);
@@ -111,7 +115,7 @@ fn main() {
         },
         Task::PrintStandardIncludes => {
             let file_content = read_single_file_content(file_names);
-            for header in preprocessor::get_standards_includes(&file_content).into_iter() {
+            for header in preprocessor::get_standard_includes(&file_content).into_iter() {
                 println!("{}", header);
             }
         },
@@ -133,5 +137,14 @@ fn main() {
                 println!("{}", header);
             }
         },
+        Task::PrintUnusedStandardHeaders => {
+            for file in file_names
+            {
+                for header in standard_headers::get_unused_headers(&read_file_content(&file))
+                {
+                    println!("{} : {}", file, header);
+                }
+            }
+        }
     }
 }

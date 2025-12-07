@@ -1,4 +1,7 @@
 use std::collections::HashMap;
+use crate::preprocessor;
+use crate::string_remover;
+use crate::comment_remover;
 
 fn make_standard_headers_map() -> HashMap<&'static str, Vec<&'static str>>
 {
@@ -102,7 +105,7 @@ fn make_standard_headers_map() -> HashMap<&'static str, Vec<&'static str>>
 
     let mut bitset = vec!["bitset"];
     bitset.extend(&res["string"]);
-    bitset.extend(&res["iosfwd"]);
+    // bitset.extend(&res["iosfwd"]); // TODO
     res.insert("bitset", bitset);
 
     let mut tuple = vec!["tuple", "tuple_size", "tuple_element", "tuple_size", "tuple_element", "uses_allocator", "ignore", "make_tuple", "tie", "forward_as_tuple", "tuple_cat", "get", "apply", "make_from_tuple"];
@@ -123,11 +126,11 @@ fn make_standard_headers_map() -> HashMap<&'static str, Vec<&'static str>>
     res.insert("variant", variant);
 
     let mut memory = vec!["pointer_traits", "pointer_safety", "allocator", "allocator_traits", "allocation_result", "allocator_arg_t", "uses_allocator", "raw_storage_iterator", "unique_ptr", "shared_ptr", "weak_ptr", "auto_ptr", "owner_less", "enable_shared_from_this", "bad_weak_ptr", "default_delete", "out_ptr_t", "inout_ptr_t", "allocator_arg", "allocate_at_least", "to_address", "addressof", "align", "assume_aligned", "declare_reachable", "undeclare_reachable", "declare_no_pointers", "undeclare_no_pointers", "get_pointer_safety", "uninitialized_copy", "uninitialized_copy_n", "uninitialized_fill", "uninitialized_fill_n", "uninitialized_move", "uninitialized_move_n", "uninitialized_default_construct", "uninitialized_default_construct_n", "uninitialized_value_construct", "uninitialized_value_construct_n", "construct_at", "destroy_at", "destroy", "destroy_n", "get_temporary_buffer", "return_temporary_buffer", "make_unique", "make_unique_for_overwrite", "make_shared", "make_shared_for_overwrite", "allocate_shared", "allocate_shared_for_overwrite", "static_pointer_cast", "dynamic_pointer_cast", "const_pointer_cast", "reinterpret_pointer_cast", "get_deleter", "out_ptr", "inout_ptr", "ranges::uninitialized_copy", "ranges::uninitialized_copy_n", "ranges::uninitialized_fill", "ranges::uninitialized_fill_n", "ranges::uninitialized_move", "ranges::uninitialized_move_n", "ranges::uninitialized_default_construct", "ranges::uninitialized_default_construct_n", "ranges::uninitialized_value_construct", "ranges::uninitialized_value_construct_n", "ranges::construct_at", "ranges::destroy_at", "ranges::destroy", "ranges::destroy_n"]; // operator<<
-    memory.extend(&res["memory"]);
+    memory.extend(&res["compare"]);
     res.insert("memory", memory);
 
     let mut cinttypes = vec!["imaxdiv_t", "abs", "imaxabs", "div", "imaxdiv", "strtoimax", "strtoumax", "wcstoimax", "wcstoumax", "PRIdN", "PRIiN", "PRIoN", "PRIuN", "PRIxN", "PRIXN", "SCNdN", "SCNiN", "SCNoN", "SCNuN", "SCNxN", "PRIdLEASTN", "PRIiLEASTN", "PRIoLEASTN", "PRIuLEASTN", "PRIxLEASTN", "PRIXLEASTN", "SCNdLEASTN", "SCNiLEASTN", "SCNoLEASTN", "SCNuLEASTN", "SCNxLEASTN", "PRIdFASTN", "PRIiFASTN", "PRIoFASTN", "PRIuFASTN", "PRIxFASTN", "PRIXFASTN", "SCNdFASTN", "SCNiFASTN", "SCNoFASTN", "SCNuFASTN", "SCNxFASTN", "PRIdMAX", "PRIiMAX", "PRIoMAX", "PRIuMAX", "PRIxMAX", "PRIXMAX", "SCNdMAX", "SCNiMAX", "SCNoMAX", "SCNuMAX", "SCNxMAX", "PRIdPTR", "PRIiPTR", "PRIoPTR", "PRIuPTR", "PRIxPTR", "PRIXPTR", "SCNdPTR", "SCNiPTR", "SCNoPTR", "SCNuPTR", "SCNxPTR"];
-    cinttypes.extend(&res["inttypes.h"]); // TODO
+    // cinttypes.extend(&res["inttypes.h"]); // TODO
     res.insert("cinttypes", cinttypes);
 
     let mut system_error = vec!["error_category", "error_condition", "errc", "error_code", "system_error", "is_error_code_enum", "is_error_condition_enum", "generic_category", "system_category", "make_error_code", "make_error_condition"];
@@ -178,4 +181,63 @@ fn make_standard_headers_map() -> HashMap<&'static str, Vec<&'static str>>
     res.insert("wctype.h", res["cwctype"].clone());
 
     res
+}
+
+pub fn get_unused_headers(file_content: &str) -> Vec<String>
+{
+    let mut res = Vec::<String>::new();
+
+    let all_headers = preprocessor::get_standard_includes(file_content);
+
+    let mut stripped_file_content = comment_remover::remove_comments(file_content);
+    stripped_file_content = string_remover::remove_strings(&stripped_file_content);
+    stripped_file_content = preprocessor::remove_preprocessor_directives(&stripped_file_content);
+
+    for (h, definitions) in make_standard_headers_map()
+    {
+        if !all_headers.contains(&h.to_string())
+        {
+            continue;
+        }
+
+        let mut is_used = false;
+        for definition in definitions
+        {
+            if stripped_file_content.contains(&definition.to_string())
+            {
+                is_used = true;
+                break;
+            }
+        }
+
+        if !is_used
+        {
+            res.push(h.to_string());
+        }
+    }
+
+    res
+}
+
+#[cfg(test)]
+mod test {
+    use crate::standard_headers::get_unused_headers;
+
+    #[test]
+    fn simple_unused_include()
+    {
+        let input = "#include <vector>";
+        assert_eq!(get_unused_headers(input), vec!["vector"]);
+    }
+
+    #[test]
+    fn simple_used_include()
+    {
+        let input = "
+            #include <vector>
+
+            std::vector v;
+        ";
+        assert_eq!(get_unused_headers(input), Vec::<String>::new());
+    }
 }

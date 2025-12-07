@@ -143,6 +143,11 @@ pub fn get_includes_with_brackets(file_content: &str) -> Vec<String>
         }
     }
 
+    if (state == State::LookingForNewLine) && (new_include != "")
+    {
+        res.push(new_include);
+    }
+
     res
 }
 
@@ -180,7 +185,7 @@ pub fn get_custom_includes(file_content: &str) -> Vec<String>
         .collect::<Vec<String>>()
 }
 
-pub fn get_standards_includes(file_content: &str) -> Vec<String>
+pub fn get_standard_includes(file_content: &str) -> Vec<String>
 {
     get_includes_with_brackets(file_content)
         .into_iter()
@@ -189,6 +194,79 @@ pub fn get_standards_includes(file_content: &str) -> Vec<String>
         .collect::<Vec<String>>()
 }
 
+pub fn remove_preprocessor_directives(file_content: &str) -> String
+{
+    let mut res = String::new();
+
+    let mut inside_preprocessor_directive = false;
+
+    for token in tokenize(file_content)
+    {
+        if inside_preprocessor_directive
+        {
+            if let Token::NewLine(_) = token
+            {
+                inside_preprocessor_directive = false;
+            }
+        }
+        else
+        {
+            if token == Token::Operator("#".into())
+            {
+                inside_preprocessor_directive = true;
+            }
+            else
+            {
+                if let Token::Unknown(s) = token
+                {
+                    res += &s;
+                }
+                else if let Token::LineContinuation(s) = token
+                {
+                    res += &s;
+                }
+                else if let Token::NewLine(s) = token
+                {
+                    res += &s;
+                }
+                else if let Token::WhiteSpace(s) = token
+                {
+                    res += &s;
+                }
+                else if let Token::Comment(s) = token
+                {
+                    res += &s;
+                }
+                else if let Token::String(s) = token
+                {
+                    res += &s;
+                }
+                else if let Token::Char(s) = token
+                {
+                    res += &s;
+                }
+                else if let Token::Number(s) = token
+                {
+                    res += &s;
+                }
+                else if let Token::Operator(s) = token
+                {
+                    res += &s;
+                }
+                else if let Token::Identifier(s) = token
+                {
+                    res += &s;
+                }
+                else
+                {
+                    panic!("Unexpected token type");
+                }
+            }
+        }
+    }
+
+    res
+}
 
 #[cfg(test)]
 mod test
@@ -318,7 +396,7 @@ int main()
             "a/b/c.hpp".to_string(),
             "abc.h".to_string(),
         ]);
-        assert_eq!(get_standards_includes(input), vec![
+        assert_eq!(get_standard_includes(input), vec![
             "iostream".to_string(),
             "string".to_string(),
             "string.h".to_string(),
@@ -326,6 +404,16 @@ int main()
             "vector".to_string(),
             "deque".to_string(),
         ]);
+    }
+
+    #[test]
+    fn test_single_include_no_newline()
+    {
+        let input = "#include <vector>";
+        assert_eq!(get_includes_with_brackets(input), vec!["<vector>"]);
+        assert_eq!(get_includes(input), vec!["vector"]);
+        assert_eq!(get_custom_includes(input), Vec::<String>::new());
+        assert_eq!(get_standard_includes(input), vec!["vector"]);
     }
 }
 
