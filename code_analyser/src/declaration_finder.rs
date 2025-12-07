@@ -66,4 +66,10 @@ mod test {
         let input = "int myVar;";
         assert_eq!(find_declarations(input), vec!["myVar"]);
     }
+
+    #[test]
+    fn test_single_var_2() {
+        let input = "int myVar = 5;";
+        assert_eq!(find_declarations(input), vec!["myVar"]);
+    }
 }
