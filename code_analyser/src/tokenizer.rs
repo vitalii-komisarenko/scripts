@@ -67,6 +67,29 @@ fn read_single_line_comment(mut s: &str) -> String
     res
 }
 
+
+fn read_multi_line_comment(mut s: &str) -> String
+{
+    let mut res = String::new();
+
+    while s.len() > 0
+    {
+        if s.starts_with("*/")
+        {
+            res.push_str(&s[..2]);
+            s = &s[2..];
+            break;
+        }
+
+        res.push_str(&s[..1]);
+        s = &s[1..];
+        continue;
+    }
+
+    res
+}
+
+
 pub fn tokenize(file_content: &str) -> Vec<Token>
 {
     let mut s = file_content;
@@ -107,7 +130,13 @@ pub fn tokenize(file_content: &str) -> Vec<Token>
             s = &s[val.len()..];
             res.push(Token::Comment(val.to_string()));
         }
-    }
+
+        if s.starts_with("/*")
+        {
+            let val = read_multi_line_comment(s);
+            s = &s[val.len()..];
+            res.push(Token::Comment(val.to_string()));
+        }    }
 
     res
 }
@@ -167,6 +196,16 @@ mod test {
         let input = "// \t  \t \n \t\t\t";
         assert_eq!(tokenize(input), vec![
             Token::Comment("// \t  \t \n".to_string()),
+            Token::WhiteSpace(" \t\t\t".to_string()),
+        ]);
+    }
+
+    #[test]
+    fn test_multi_line_comment() {
+        let input = "/* \t  \t */\n \t\t\t";
+        assert_eq!(tokenize(input), vec![
+            Token::Comment("/* \t  \t */".to_string()),
+            Token::NewLine("\n".to_string()),
             Token::WhiteSpace(" \t\t\t".to_string()),
         ]);
     }
