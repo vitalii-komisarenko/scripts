@@ -31,6 +31,8 @@ impl DeclarationFinder
 ///
 /// 1. Remove preprocessor directives
 /// 2. Remove whitespace (Token::WhiteSpace and Token::NewLine)
+/// 3. Remove comments
+/// 4. Remove unnecessary keywords
 fn filter_tokens(input_tokens: Vec::<Token>) -> Vec::<Token>
 {
     let mut res = Vec::<Token>::new();
@@ -61,6 +63,19 @@ fn filter_tokens(input_tokens: Vec::<Token>) -> Vec::<Token>
             {
                 res.push(Token::Operator(s));
             }
+        }
+        else if let Token::Identifier(ref s) = token
+        {
+            for keyword in vec!["const", "final"]
+            {
+                if s == keyword
+                {
+                    // skip
+                    continue;
+                }
+            }
+
+            res.push(token);
         }
         else
         {
