@@ -390,13 +390,19 @@ impl DeclarationFinder
             else if *self.token() == Token::Identifier("using".into())
             {
                 self.skip_identifier("using");
-                if *self.token() == Token::Identifier("namespace".into())
+                if let Token::Identifier(s) = self.token()
                 {
-                    self.skip_to_operator(";");
+                    match s.as_str(){
+                        "namespace" => self.skip_to_operator(";"),
+                        _ => {
+                            self.declarations.push(s.to_string());
+                            self.skip_to_operator(";");
+                        },
+                    }
                 }
                 else
                 {
-                    panic!("find_declarations: Not implemented. Only `namespace` is supported after `using`");
+                    panic!("find_declarations: Identifier expected after `using` but {:?} found", self.token());
                 }
             }
             else if *self.token() == Token::Identifier("class".into()) || *self.token() == Token::Identifier("struct".into())
@@ -734,5 +740,20 @@ bool operator==(const S& lhs, const S& rhs)
         int main() {}
         ";
         assert_eq!(find_declarations(input), vec!["main"]);
+    }
+
+    #[test]
+    fn test_using_type() {
+        let input = "
+            #include <vector>
+            #include <string>
+
+            using myType = std::vector<std::string>;
+
+            myType myVector = {\"aaa\", \"bbb\", \"ccc\"};
+
+            int main() {}
+        ";
+        assert_eq!(find_declarations(input), vec!["myType", "myVector", "main"]);
     }
 }
