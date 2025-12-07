@@ -204,6 +204,45 @@ impl DeclarationFinder
         panic!("skip_template_brackets: EOF");
     }
 
+    fn skip_to_one_of_operators(&mut self, operators: Vec<&str>) -> String
+    {
+        while !self.eof()
+        {
+            if let Token::Operator(s) = &self.token()
+            {
+                if operators.contains(&&s[..])
+                {
+                    return s.into();
+                }
+                else if s == "("
+                {
+                    self.skip_token();
+                    self.skip_to_operator_inclusive(")");
+                }
+                else if s == "{"
+                {
+                    self.skip_token();
+                    self.skip_to_operator_inclusive("}");
+                }
+                else if s == "["
+                {
+                    self.skip_token();
+                    self.skip_to_operator_inclusive("]");
+                }
+                else
+                {
+                    self.skip_token();
+                }
+            }
+            else
+            {
+                self.skip_token();
+            }
+        }
+
+        panic!("skip_to_one_of_operators: EOF");
+    }
+
     fn skip_to_operator_inclusive(&mut self, operator: &str)
     {
         while !self.eof()
@@ -240,6 +279,8 @@ impl DeclarationFinder
                 self.skip_token();
             }
         }
+
+        panic!("skip_to_operator_inclusive: EOF");
     }
 
     fn skip_bracket_pair(&mut self, opening_bracket: &str, closing_bracket: &str)
@@ -484,10 +525,35 @@ impl DeclarationFinder
         if let Token::Identifier(s) = self.token()
         {
             self.add_declaration(s.into());
+            self.skip_token();
+            self.skip_operator("{");
+            while !self.eof()
+            {
+                if let Token::Identifier(s) = self.token()
+                {
+                    self.add_declaration(s.into());
+                    self.skip_to_one_of_operators(vec![",", "}"]);
+                }
+                else if *self.token() == Token::Operator(",".into())
+                {
+                    self.skip_operator(",");
+                    continue;
+                }
+                else if *self.token() == Token::Operator("}".into())
+                {
+                    self.skip_operator("}");
+                    return;
+                }
+                else
+                {
+                    panic!("process_enum: Unexpected token {:?}", self.token())
+                }
+            }
+            panic!("process_enum: EOF");
         }
         else
         {
-            panic!("process_enum: Unexpected token: {:?}", self.token());
+            panic!("process_enum: Unexpected token after `enum`: {:?}", self.token());
         }
     }
 
