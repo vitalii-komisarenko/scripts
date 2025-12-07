@@ -146,6 +146,21 @@ pub fn get_includes(file_content: &str) -> Vec<String>
     res
 }
 
+pub fn get_includes_without_brackets(file_content: &str) -> Vec<String>
+{
+    let mut res = Vec::<String>::new();
+
+    for inc in get_includes(file_content)
+    {
+        let mut chars = inc.chars();
+        chars.next();
+        chars.next_back();
+        res.push(chars.as_str().to_string());
+    }
+
+    res
+}
+
 #[cfg(test)]
 mod test
 {
@@ -257,6 +272,17 @@ int main()
             "\"abc.h\"".to_string(),
             "<vector>".to_string(),
             "<deque>".to_string(),
+        ]);
+        assert_eq!(get_includes_without_brackets(input), vec![
+            "iostream".to_string(),
+            "file.h".to_string(),
+            "string".to_string(),
+            "string.h".to_string(),
+            "2.h".to_string(),
+            "a/b/c.hpp".to_string(),
+            "abc.h".to_string(),
+            "vector".to_string(),
+            "deque".to_string(),
         ]);
     }
 }
