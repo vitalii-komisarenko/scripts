@@ -15,6 +15,16 @@ impl DeclarationFinder
     {
         self.pos >= self.tokens.len()
     }
+
+    fn token(&self) -> &Token
+    {
+        &self.tokens[self.pos]
+    }
+
+    fn skip_token(&mut self)
+    {
+        self.pos += 1;
+    }
 }
 
 /// Filter out unneeded tokens to simplify processing
@@ -130,71 +140,64 @@ fn skip_bracket_pair(tokens: &Vec<Token>, i: &mut usize, opening_bracket: &str, 
     panic!("skip_bracket_pair: EOF");
 }
 
-fn skip_function(tokens: &Vec<Token>, i: &mut usize)
-{
-    // To handle function declarations and definitions, e.g.:
-    //
-    // int myFunc ( ... );
-    // int myFunc ( ... ) { ... }
-    //
-    // The pointer is at the "("
-
-    // 1. Check that we point at "("
-
-    if *i >= tokens.len()
-    {
-        panic!("skip_function: '(' expected, EOF found");
-    }
-
-    if let Token::Operator(s) = &tokens[*i]
-    {
-        if s != "("
-        {
-            panic!("skip_function: '(' expected, {:?} found", &tokens[*i]);
-        }
-    }
-    else
-    {
-        panic!("skip_function: '(' expected, {:?} found", &tokens[*i]);
-    }
-
-    // 2. Skip parameter list (round brackets)
-
-    skip_bracket_pair(&tokens, i, "(", ")");
-
-    // 3. Check if the next token if ';' or '{'
-
-    if *i >= tokens.len()
-    {
-        panic!("skip_function: ';' or '{{' expected, EOF found");
-    }
-
-    if let Token::Operator(s) = &tokens[*i]
-    {
-        match s.as_str()
-        {
-            ";" => {
-                // 4A. It is a function declaration. Skip ";"
-                *i += 1;
-                return;
-            },
-            "{" => {
-                // 4B. It is a function definition. Skip curly brackets
-                *i += 1;
-                skip_to_operator(&tokens, i, "}");
-                return;
-            }
-            _ => panic!("skip_function: ';' or '{{' expected, {:?} found", &tokens[*i]),
-        }
-    }
-    else
-    {
-        panic!("skip_function: ';' or '{{' expected, {:?} found", &tokens[*i]);
-    }
-}
-
 impl DeclarationFinder
 {
+    fn skip_function(&mut self)
+    {
+        // To handle function declarations and definitions, e.g.:
+        //
+        // int myFunc ( ... );
+        // int myFunc ( ... ) { ... }
+        //
+        // The pointer is at the "("
+
+        // 1. Check that we point at "("
+
+        if self.eof()
+        {
+            panic!("skip_function: '(' expected, EOF found");
+        }
+
+        if *self.token() != Token::Operator("(".into())
+        {
+            panic!("skip_function: '(' expected, {:?} found", self.token());
+        }
+
+        // 2. Skip parameter list (round brackets)
+
+        skip_bracket_pair(&self.tokens, &mut self.pos, "(", ")");
+
+        // 3. Check if the next token if ';' or '{'
+
+        if self.eof()
+        {
+            panic!("skip_function: ';' or '{{' expected, EOF found");
+        }
+
+        if let Token::Operator(s) = self.token()
+        {
+            match s.as_str()
+            {
+                ";" => {
+                    // 4A. It is a function declaration. Skip ";"
+                    self.skip_token();
+                    return;
+                },
+                "{" => {
+                    // 4B. It is a function definition. Skip curly brackets
+                    self.skip_token();
+                    skip_to_operator(&self.tokens, &mut self.pos, "}");
+                    return;
+                }
+                _ => panic!("skip_function: ';' or '{{' expected, {:?} found", self.token()),
+            }
+        }
+        else
+        {
+            panic!("skip_function: ';' or '{{' expected, {:?} found", self.token());
+        }
+    }
+
     fn find_declarations(&mut self, file_content: &str)
     {
         self.declarations = get_preprocessor_definitions(file_content);
@@ -215,7 +218,7 @@ impl DeclarationFinder
                         {
                             ";" => {self.pos += 1},
                             "=" => skip_to_operator(&self.tokens, &mut self.pos, ";"),
-                            "(" => skip_function(&self.tokens, &mut self.pos),
+                            "(" => self.skip_function(),
                             _ => panic!("Unexpected operator: {}", s2),
                         }
                     }
