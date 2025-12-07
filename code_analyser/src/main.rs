@@ -1,3 +1,4 @@
+//mod bracket_tree;
 mod comment_remover;
 mod string_remover;
 mod statement_tree;
