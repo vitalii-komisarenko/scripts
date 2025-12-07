@@ -399,7 +399,7 @@ impl DeclarationFinder
                     panic!("find_declarations: Not implemented. Only `namespace` is supported after `using`");
                 }
             }
-            else if (*self.token() == Token::Identifier("class".into()) || *self.token() == Token::Identifier("struct".into()))
+            else if *self.token() == Token::Identifier("class".into()) || *self.token() == Token::Identifier("struct".into())
             {
                 self.skip_token(); // skip `class`/`struct` keyword
                 if self.eof()
