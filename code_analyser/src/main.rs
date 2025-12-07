@@ -4,6 +4,7 @@ mod string_remover;
 mod statement_tree;
 mod tokenizer;
 mod preprocessor;
+mod declaration_finder;
 
 use std::env;
 use std::fs;
@@ -15,6 +16,7 @@ enum Task {
     RemoveComments,
     RemoveCommentsAndStrings,
     PrintIncludes,
+    PrintDeclarations,
 }
 
 fn print_help() {
@@ -27,6 +29,8 @@ fn print_help() {
     println!("        Remove comments, strings and chars from a single C/C++/header file, prints output to the standard output");
     println!("    --print-includes <filename>");
     println!("        Print headers used in #include directives");
+    println!("    --find-declarations <filename>");
+    println!("        Print all declarations and definitions");
 }
 
 fn read_file_content(path: &str) -> String
@@ -51,6 +55,7 @@ fn main() {
                 "--remove-comments" => task = Task::RemoveComments,
                 "--remove-comments-and-strings" => task = Task::RemoveCommentsAndStrings,
                 "--print-includes" => task = Task::PrintIncludes,
+                "--find-declarations" => task = Task::PrintDeclarations,
                 _ => {
                     print_help();
                     process::exit(1);
@@ -98,6 +103,18 @@ fn main() {
                     println!("{}", header);
                 }
             }
-        }
+        },
+        Task::PrintDeclarations => {
+            if file_names.len() != 1 {
+                println!("Only one file name expected");
+                process::exit(1);
+            }
+            else {
+                let file_content = read_file_content(file_names[0].as_str());
+                for header in declaration_finder::find_declarations(&file_content).into_iter() {
+                    println!("{}", header);
+                }
+            }
+        },
     }
 }
