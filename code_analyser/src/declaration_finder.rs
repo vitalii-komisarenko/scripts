@@ -73,20 +73,28 @@ fn filter_tokens(input_tokens: Vec::<Token>) -> Vec::<Token>
 
 impl DeclarationFinder
 {
-    /// Skip content inside `<` and `>` (including the closing `>`)
-    fn skip_template(&mut self)
+    fn skip_exact_token(&mut self, token_to_skip: &Token)
     {
         if self.eof()
         {
-            panic!("skip_template: '<' expected, EOF found")
+            panic!("skip_exact_token: {:?} expected, EOF found", token_to_skip);
         }
-
-        if *self.token() != Token::Operator("<".into())
+        if self.token() != token_to_skip
         {
-            panic!("skip_template: '<' expected, {:?} found", self.token());
+            panic!("skip_exact_token: {:?} expected, {:?} found", token_to_skip, self.token());
         }
+        self.skip_token();
+    }
 
-        self.skip_token(); // skip '<'
+    fn skip_operator(&mut self, operator: &str)
+    {
+        self.skip_exact_token(&Token::Operator(operator.into()));
+    }
+
+    /// Skip content inside `<` and `>` (including the closing `>`)
+    fn skip_template(&mut self)
+    {
+        self.skip_operator("<");
 
         while !self.eof()
         {
