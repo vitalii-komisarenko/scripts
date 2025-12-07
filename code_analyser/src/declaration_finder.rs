@@ -192,40 +192,39 @@ impl DeclarationFinder
         self.declarations = get_preprocessor_definitions(file_content);
         let tokens = filter_tokens(tokenize(&file_content));
 
-        let mut i = 0;
-        while i < tokens.len()
+        while self.pos < tokens.len()
         {
-            if let Token::Identifier(s) = &tokens[i]
+            if let Token::Identifier(s) = &tokens[self.pos]
             {
-                i += 1;
-                if let Token::Identifier(s1) = &tokens[i]
+                self.pos += 1;
+                if let Token::Identifier(s1) = &tokens[self.pos]
                 {
                     self.declarations.push(s1.to_string());
-                    i += 1;
-                    if let Token::Operator(s2) = &tokens[i]
+                    self.pos += 1;
+                    if let Token::Operator(s2) = &tokens[self.pos]
                     {
                         match s2.as_str()
                         {
-                            ";" => {i += 1},
-                            "=" => skip_to_operator(&tokens, &mut i, ";"),
-                            "(" => skip_function(&tokens, &mut i),
+                            ";" => {self.pos += 1},
+                            "=" => skip_to_operator(&tokens, &mut self.pos, ";"),
+                            "(" => skip_function(&tokens, &mut self.pos),
                             _ => panic!("Unexpected operator: {}", s2),
                         }
                     }
                 }
             }
-            else if let Token::Operator(s) = &tokens[i]
+            else if let Token::Operator(s) = &tokens[self.pos]
             {
                 match s.as_str()
                 {
-                    "{" => skip_bracket_pair(&tokens, &mut i, "{", "}"),
-                    ";" => { i += 1; },
+                    "{" => skip_bracket_pair(&tokens, &mut self.pos, "{", "}"),
+                    ";" => { self.pos += 1; },
                     _ => panic!("Unexpected operator: {}", s),
                 }
             }
             else
             {
-                panic!("Unexpected token: {:?}", &tokens[i]);
+                panic!("Unexpected token: {:?}", &tokens[self.pos]);
             }
         }
     }
