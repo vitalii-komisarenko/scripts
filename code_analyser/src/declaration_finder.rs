@@ -384,8 +384,20 @@ impl DeclarationFinder
         {
             if *self.token() == Token::Identifier("template".into())
             {
-                self.skip_token(); // skip `template` keyword
+                self.skip_identifier("template");
                 self.skip_template();
+            }
+            else if *self.token() == Token::Identifier("using".into())
+            {
+                self.skip_identifier("using");
+                if *self.token() == Token::Identifier("namespace".into())
+                {
+                    self.skip_to_operator(";");
+                }
+                else
+                {
+                    panic!("find_declarations: Not implemented. Only `namespace` is supported after `using`");
+                }
             }
             else if (*self.token() == Token::Identifier("class".into()) || *self.token() == Token::Identifier("struct".into()))
             {
@@ -711,5 +723,16 @@ bool operator==(const S& lhs, const S& rhs)
     fn test_operator_keyword_in_c_7() {
         let input = "const const const char * operator();";
         assert_eq!(find_declarations(input), vec!["operator"]);
+    }
+
+    #[test]
+    fn test_using_namespace() {
+        let input = "
+        #include <iostream>
+        using namespace std;
+        using namespace A::B::C;
+        int main() {}
+        ";
+        assert_eq!(find_declarations(input), vec!["main"]);
     }
 }
