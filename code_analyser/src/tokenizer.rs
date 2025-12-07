@@ -7,7 +7,6 @@ enum Token
 {
     // A token that is not properly parsed
     Unknown(String),
-    PreprocessorDirective(String),
     // Backshash followed by newline markers, such as \n, \r, \n\r, \r\n
     LineContinuation(String),
     // \n, \r, \n\r or \r\n
@@ -26,6 +25,12 @@ enum Token
     // Integer or floating number, but without leading sign
     // E.g. 123456 is a number, 123e-456 is a number, but -123 is a combination of an operator "-" and number 123.
     Number(String),
+    // One-character operator, such as +, <, =, ~, &
+    //
+    // If the operator is made of two characters, such as +=, it is parsed as two operators (+ and = in this case).
+    // It is done this way to not confuse operator >> and two closing templates, e.g.:
+    // * std::vector<std::vector<int>>
+    // * std::vector<std::vector<int> >
     Operator(String),
 }
 
@@ -315,6 +320,17 @@ pub fn tokenize(file_content: &str) -> Vec<Token>
             continue 'outer;
         }
 
+        for val in ["#", "!", "~", "%", "^", "&", "*", "(", ")", "[", "]", "{", "}",
+                    "+", "-", "=", "/", ":", ";", "<", ">", "?", ",", ".", "|"].into_iter()
+        {
+            if s.starts_with(val)
+            {
+                s = &s[val.len()..];
+                res.push(Token::Operator(val.to_string()));   
+                continue 'outer;
+            }
+        }
+
         let val = &s[..1];
         s = &s[1..];
         res.push(Token::Unknown(val.to_string()));
@@ -548,6 +564,17 @@ mod test {
         let input = "  123.456E+789    ";
         assert_eq!(tokenize(input), vec![
             Token::WhiteSpace("  ".to_string()),
+            Token::Number("123.456E+789".to_string()),
+            Token::WhiteSpace("    ".to_string()),
+        ]);
+    }
+
+    #[test]
+    fn test_operator() {
+        let input = "  -123.456E+789    ";
+        assert_eq!(tokenize(input), vec![
+            Token::WhiteSpace("  ".to_string()),
+            Token::Operator("-".to_string()),
             Token::Number("123.456E+789".to_string()),
             Token::WhiteSpace("    ".to_string()),
         ]);
