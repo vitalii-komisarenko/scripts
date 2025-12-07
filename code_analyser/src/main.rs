@@ -8,6 +8,7 @@ mod preprocessor;
 use std::env;
 use std::fs;
 use std::process;
+use std::io::{self, Read};
 
 enum Task {
     PrintHelp,
@@ -23,6 +24,17 @@ fn print_help() {
     println!("        Remove comments from a single C/C++/header file, prints output to the standard output");
     println!("    --remove-comments-and-strings <filename>");
     println!("        Remove comments, strings and chars from a single C/C++/header file, prints output to the standard output");
+}
+
+fn read_file_content(path: &str) -> String
+{
+    if path == "-" {
+        let mut res = String::new();
+        io::stdin().read_to_string(&mut res).unwrap();
+        return res;
+    }
+
+    return fs::read_to_string(path).unwrap();
 }
 
 fn main() {
@@ -54,7 +66,7 @@ fn main() {
                 process::exit(1);
             }
             else {
-                let file_content = fs::read_to_string(file_names[0].as_str()).unwrap();
+                let file_content = read_file_content(file_names[0].as_str());
                 let without_comments = comment_remover::remove_comments(file_content.as_str());
                 print!("{}", without_comments);
             }
@@ -65,7 +77,7 @@ fn main() {
                 process::exit(1);
             }
             else {
-                let file_content = fs::read_to_string(file_names[0].as_str()).unwrap();
+                let file_content = read_file_content(file_names[0].as_str());
                 let without_comments = comment_remover::remove_comments(file_content.as_str());
                 let without_comments_and_strings = string_remover::remove_strings(&without_comments);
                 print!("{}", without_comments_and_strings);
