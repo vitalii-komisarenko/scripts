@@ -12,6 +12,7 @@ use std::process;
 enum Task {
     PrintHelp,
     RemoveComments,
+    RemoveCommentsAndStrings,
 }
 
 fn print_help() {
@@ -20,6 +21,8 @@ fn print_help() {
     println!("        Print this help");
     println!("    --remove-comments <filename>");
     println!("        Remove comments from a single C/C++/header file, prints output to the standard output");
+    println!("    --remove-comments-and-strings <filename>");
+    println!("        Remove comments, strings and chars from a single C/C++/header file, prints output to the standard output");
 }
 
 fn main() {
@@ -31,6 +34,7 @@ fn main() {
             match arg.as_str() {
                 "--help" => task = Task::PrintHelp,
                 "--remove-comments" => task = Task::RemoveComments,
+                "--remove-comments-and-strings" => task = Task::RemoveCommentsAndStrings,
                 _ => {
                     print_help();
                     process::exit(1);
@@ -54,6 +58,18 @@ fn main() {
                 let without_comments = comment_remover::remove_comments(file_content.as_str());
                 print!("{}", without_comments);
             }
-        }
+        },
+        Task::RemoveCommentsAndStrings => {
+            if file_names.len() != 1 {
+                println!("Only one file name expected");
+                process::exit(1);
+            }
+            else {
+                let file_content = fs::read_to_string(file_names[0].as_str()).unwrap();
+                let without_comments = comment_remover::remove_comments(file_content.as_str());
+                let without_comments_and_strings = string_remover::remove_strings(&without_comments);
+                print!("{}", without_comments_and_strings);
+            }
+        },
     }
 }

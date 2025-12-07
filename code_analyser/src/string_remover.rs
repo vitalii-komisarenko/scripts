@@ -12,7 +12,7 @@ enum ParserState {
 ///
 /// It is assumed that the user already called `remove_comments` function.
 
-fn remove_strings(file_content: &str) -> String {
+pub fn remove_strings(file_content: &str) -> String {
     let mut result: String = Default::default();
     let mut state: ParserState = ParserState::Normal;
     for ch in file_content.bytes() {
