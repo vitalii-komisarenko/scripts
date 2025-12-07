@@ -455,6 +455,44 @@ mod test {
     }
 
     #[test]
+    fn test_empty_comments() {
+        let input = "\
+#include <iostream>
+/**/ int main()
+//
+{
+\treturn 0;
+}";
+        assert_eq!(tokenize(input), vec![
+            Token::Operator("#".to_string()),
+            Token::Identifier("include".to_string()),
+            Token::WhiteSpace(" ".to_string()),
+            Token::Operator("<".to_string()),
+            Token::Identifier("iostream".to_string()),
+            Token::Operator(">".to_string()),
+            Token::NewLine("\n".to_string()),
+            Token::Comment("/**/".to_string()),
+            Token::WhiteSpace(" ".to_string()),
+            Token::Identifier("int".to_string()),
+            Token::WhiteSpace(" ".to_string()),
+            Token::Identifier("main".to_string()),
+            Token::Operator("(".to_string()),
+            Token::Operator(")".to_string()),
+            Token::NewLine("\n".to_string()),
+            Token::Comment("//\n".to_string()),
+            Token::Operator("{".to_string()),
+            Token::NewLine("\n".to_string()),
+            Token::WhiteSpace("\t".to_string()),
+            Token::Identifier("return".to_string()),
+            Token::WhiteSpace(" ".to_string()),
+            Token::Number("0".to_string()),
+            Token::Operator(";".to_string()),
+            Token::NewLine("\n".to_string()),
+            Token::Operator("}".to_string()),
+        ]);
+    }
+
+    #[test]
     fn test_empty_string() {
         let input = " \"\" ";
         assert_eq!(tokenize(input), vec![
