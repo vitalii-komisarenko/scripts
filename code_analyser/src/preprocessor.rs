@@ -63,7 +63,7 @@ pub fn get_preprocessor_definitions(file_content: &str) -> Vec<String>
 
         if state == State::LookingForNewLine
         {
-            if let Token::NewLine(s) = token
+            if let Token::NewLine(_) = token
             {
                 state = State::LookingForOctothorp;
             }
@@ -117,7 +117,7 @@ pub fn get_includes_with_brackets(file_content: &str) -> Vec<String>
 
         if state == State::LookingForNewLine
         {
-            if let Token::NewLine(s) = token
+            if let Token::NewLine(_) = token
             {
                 res.push(new_include);
                 new_include = String::new();

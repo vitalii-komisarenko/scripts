@@ -74,7 +74,7 @@ fn read_single_line_comment(mut s: &str) -> String
         if s.starts_with("\n") || s.starts_with("\r")
         {
             res.push_str(&s[..1]);
-            s = &s[1..];
+            // s = &s[1..];
             break;
         }
 
@@ -99,7 +99,7 @@ fn read_multi_line_comment(mut s: &str) -> String
         if s.starts_with("*/")
         {
             res.push_str(&s[..2]);
-            s = &s[2..];
+            // s = &s[2..];
             break;
         }
 
@@ -131,7 +131,7 @@ fn read_string(mut s: &str) -> String
         if s.starts_with("\"")
         {
             res.push_str(&s[..1]);
-            s = &s[1..];
+            // s = &s[1..];
             break;
         }
 
@@ -163,7 +163,7 @@ fn read_char(mut s: &str) -> String
         if s.starts_with("'")
         {
             res.push_str(&s[..1]);
-            s = &s[1..];
+            // s = &s[1..];
             break;
         }
 
@@ -240,7 +240,7 @@ fn read_number(mut s: &str) -> String
     // Exponent
     val = read_unsigned_int(s);
     res.push_str(&s[..val.len()]);
-    s = &s[val.len()..];
+    // s = &s[val.len()..];
 
     res
 }
