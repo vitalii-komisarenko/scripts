@@ -73,6 +73,47 @@ fn filter_tokens(input_tokens: Vec::<Token>) -> Vec::<Token>
 
 impl DeclarationFinder
 {
+    /// Skip content inside `<` and `>` (including the closing `>`)
+    fn skip_template(&mut self)
+    {
+        if self.eof()
+        {
+            panic!("skip_template: '<' expected, EOF found")
+        }
+
+        if *self.token() != Token::Operator("<".into())
+        {
+            panic!("skip_template: '<' expected, {:?} found", self.token());
+        }
+
+        self.skip_token(); // skip '<'
+
+        while !self.eof()
+        {
+            if let Token::Operator(s) = self.token()
+            {
+                match s.as_str()
+                {
+                    "(" => self.skip_bracket_pair("(", ")"),
+                    "{" => self.skip_bracket_pair("{", "}"),
+                    "[" => self.skip_bracket_pair("[", "]"),
+                    "<" => self.skip_template(),
+                    ">" => {
+                        self.skip_token();
+                        return;
+                    },
+                    _ => self.skip_token(),
+                }
+            }
+            else
+            {
+                self.skip_token();
+            }
+        }
+
+        panic!("skip_template: EOF");
+    }
+
     fn skip_to_operator(&mut self, operator: &str)
     {
         while !self.eof()
@@ -206,7 +247,12 @@ impl DeclarationFinder
 
         while !self.eof()
         {
-            if let Token::Identifier(s) = &self.tokens[self.pos]
+            if *self.token() == Token::Identifier("template".into())
+            {
+                self.skip_token(); // skip `template` keyword
+                self.skip_template();
+            }
+            else if let Token::Identifier(s) = &self.tokens[self.pos]
             {
                 self.pos += 1;
                 if let Token::Identifier(s1) = &self.tokens[self.pos]
@@ -302,5 +348,31 @@ int myFunc123() {
 }
 ";
         assert_eq!(find_declarations(input), vec!["B", "myFunc123"]);
+    }
+
+    #[test]
+    fn test_simple_template() {
+        let input = "template <typename T> T my_func(T a, const T& b);";
+        assert_eq!(find_declarations(input), vec!["my_func"]);
+    }
+
+    #[test]
+    fn test_complex_template() {
+        let input = "\
+#include <iostream>
+#include <string>
+#include <vector>
+
+template <typename T, int X, int Y = (X > 5) ? 3 : 4>
+int function()
+{
+    return Y;
+}
+
+int main()
+{
+    std::cout << function<std::vector<std::vector<std::string>>, 3>() << \"\\n\";
+}";
+        assert_eq!(find_declarations(input), vec!["function", "main"]);
     }
 }
