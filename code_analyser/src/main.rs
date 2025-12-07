@@ -5,6 +5,7 @@ mod statement_tree;
 mod tokenizer;
 mod preprocessor;
 mod declaration_finder;
+mod standard_headers;
 
 use std::env;
 use std::fs;
