@@ -73,6 +73,15 @@ fn filter_tokens(input_tokens: Vec::<Token>) -> Vec::<Token>
 
 impl DeclarationFinder
 {
+    fn dump(&self)
+    {
+        for (i, token) in self.tokens.iter().enumerate()
+        {
+            let marker = if self.pos == i {" <--------------------------"} else {""};
+            println!("{} {:?} {}", i, token, marker);
+        }
+    }
+
     fn skip_exact_token(&mut self, token_to_skip: &Token)
     {
         if self.eof()
