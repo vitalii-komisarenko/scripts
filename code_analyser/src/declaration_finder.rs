@@ -263,6 +263,16 @@ impl DeclarationFinder
                 {
                     self.declarations.push(s.to_string());
                     self.skip_token(); // class/struct name already processed
+
+                    while (*self.token() != Token::Operator(";".to_string())) && (*self.token() != Token::Operator("{".to_string()))
+                    {
+                        if self.eof()
+                        {
+                            panic!("find_declarations: EOF while parsing class/struct: ';' or '{{' needed");
+                        }
+                        self.skip_token();
+                    }
+
                     if *self.token() == Token::Operator(";".to_string())
                     {
                         self.skip_token();
@@ -427,7 +437,37 @@ class Y
 {
     int a;
     void b();
-}
+};
+";
+        assert_eq!(find_declarations(input), vec!["X", "Y"]);
+    }
+
+    #[test]
+    fn test_class_inheritance_1() {
+        let input = "\
+class X
+{
+};
+class Y: public X
+{
+    int a;
+    void b();
+};
+";
+        assert_eq!(find_declarations(input), vec!["X", "Y"]);
+    }
+
+    #[test]
+    fn test_class_inheritance_2() {
+        let input = "\
+class X
+{
+};
+class Y final: public X
+{
+    int a;
+    void b();
+};
 ";
         assert_eq!(find_declarations(input), vec!["X", "Y"]);
     }
