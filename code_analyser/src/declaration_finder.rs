@@ -1,5 +1,6 @@
 use crate::tokenizer::Token;
 use crate::tokenizer::tokenize;
+use crate::preprocessor::get_preprocessor_definitions;
 
 /// Filter out unneeded tokens to simplify processing
 ///
@@ -142,7 +143,7 @@ fn skip_function(tokens: &Vec<Token>, i: &mut usize)
 
 pub fn find_declarations(file_content: &str) -> Vec<String>
 {
-    let mut res = Vec::<String>::new();
+    let mut res = get_preprocessor_definitions(file_content);
     let tokens = filter_tokens(tokenize(&file_content));
 
     let mut i = 0;
@@ -233,6 +234,6 @@ int myFunc123() {
     return -123;
 }
 ";
-        assert_eq!(find_declarations(input), vec!["myFunc123"]);
+        assert_eq!(find_declarations(input), vec!["B", "myFunc123"]);
     }
 }
