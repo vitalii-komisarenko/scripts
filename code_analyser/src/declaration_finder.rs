@@ -28,6 +28,14 @@ impl DeclarationFinder
     {
         self.pos += 1;
     }
+
+    fn add_declaration(&mut self, declaration: String)
+    {
+        if !self.declarations.contains(&declaration)
+        {
+            self.declarations.push(declaration.into());
+        }
+    }
 }
 
 /// Filter out unneeded tokens to simplify processing
@@ -119,6 +127,19 @@ impl DeclarationFinder
         {
             let marker = if self.pos == i {" <--------------------------"} else {""};
             println!("{} {:?} {}", i, token, marker);
+        }
+    }
+
+    fn is_identifier(&self, value: &str) -> bool
+    {
+        *self.token() == Token::Identifier(value.into())
+    }
+
+    fn assert_not_eof(&self, error_msg: &str)
+    {
+        if self.eof()
+        {
+            panic!("{}", error_msg);
         }
     }
 
@@ -448,6 +469,28 @@ impl DeclarationFinder
         }
     }
 
+    fn process_enum(&mut self)
+    {
+        self.skip_identifier("enum");
+        self.assert_not_eof("process_enum: EOF after `enum` keyword");
+
+        // Process scopped enum
+        if self.is_identifier("struct") || self.is_identifier("class")
+        {
+            return; // processing as a struct/class will suffice. It will skip the body
+        }
+
+        // Process unscopped enum
+        if let Token::Identifier(s) = self.token()
+        {
+            self.add_declaration(s.into());
+        }
+        else
+        {
+            panic!("process_enum: Unexpected token: {:?}", self.token());
+        }
+    }
+
     fn process_class_or_struct_without_semicolon(&mut self)
     {
         self.skip_token(); // skip `class`/`struct` keyword
@@ -583,6 +626,7 @@ impl DeclarationFinder
                         self.skip_template_brackets();
                     },
                     "using" => self.process_using(),
+                    "enum" => self.process_enum(),
                     "class" | "struct" => self.process_class_or_struct(),
                     "typedef" => self.process_typedef(),
                     "extern" => self.process_extern(),
@@ -982,4 +1026,19 @@ bool operator==(const S& lhs, const S& rhs)
         ";
         assert_eq!(find_declarations(input), vec!["main"]);
     }
+
+    #[test]
+    fn test_enum() {
+        let input = "
+            enum A { a1, a2 };
+            enum B { b1, b2, };
+            enum class C { c1, c2 };
+            enum class D { d1, d2, };
+            enum struct E { e1, e2 };
+            enum struct F { f1, f2, };
+            int main() {}
+        ";
+        assert_eq!(find_declarations(input), vec!["A", "a1", "a2", "B", "b1", "b2", "C", "D", "E", "F", "main"]);
+    }
+
 }
