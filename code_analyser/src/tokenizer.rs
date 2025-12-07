@@ -122,6 +122,38 @@ fn read_string(mut s: &str) -> String
 }
 
 
+fn read_char(mut s: &str) -> String
+{
+    let mut res = String::new();
+
+    res.push_str(&s[..1]);
+    s = &s[1..];
+
+    while s.len() > 0
+    {
+        if s.starts_with("\\'")
+        {
+            res.push_str(&s[..2]);
+            s = &s[2..];
+            continue;
+        }
+
+        if s.starts_with("'")
+        {
+            res.push_str(&s[..1]);
+            s = &s[1..];
+            break;
+        }
+
+        res.push_str(&s[..1]);
+        s = &s[1..];
+        continue;
+    }
+
+    res
+}
+
+
 pub fn tokenize(file_content: &str) -> Vec<Token>
 {
     let mut s = file_content;
@@ -180,6 +212,14 @@ pub fn tokenize(file_content: &str) -> Vec<Token>
             let val = read_string(s);
             s = &s[val.len()..];
             res.push(Token::String(val.to_string()));
+            continue 'outer;
+        }
+
+        if s.starts_with("'")
+        {
+            let val = read_char(s);
+            s = &s[val.len()..];
+            res.push(Token::Char(val.to_string()));
             continue 'outer;
         }
 
@@ -310,4 +350,23 @@ mod test {
             Token::WhiteSpace(" ".to_string()),
         ]);
     }
-}
+
+    #[test]
+    fn test_char() {
+        let input = "  'a'    ";
+        assert_eq!(tokenize(input), vec![
+            Token::WhiteSpace("  ".to_string()),
+            Token::Char("'a'".to_string()),
+            Token::WhiteSpace("    ".to_string()),
+        ]);
+    }
+
+    #[test]
+    fn test_char_single_quote() {
+        let input = "  '\\''    ";
+        assert_eq!(tokenize(input), vec![
+            Token::WhiteSpace("  ".to_string()),
+            Token::Char("'\\''".to_string()),
+            Token::WhiteSpace("    ".to_string()),
+        ]);
+    }}
