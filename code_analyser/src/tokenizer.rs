@@ -5,7 +5,7 @@ use std::string::String;
 #[derive(PartialEq)]
 enum Token
 {
-    None,
+    Unknown(String),
     PreprocessorDirective(String),
     LineContinuation(String),
     NewLine(String),
@@ -90,12 +90,44 @@ fn read_multi_line_comment(mut s: &str) -> String
 }
 
 
+fn read_string(mut s: &str) -> String
+{
+    let mut res = String::new();
+
+    res.push_str(&s[..1]);
+    s = &s[1..];
+
+    while s.len() > 0
+    {
+        if s.starts_with("\\\"")
+        {
+            res.push_str(&s[..2]);
+            s = &s[2..];
+            continue;
+        }
+
+        if s.starts_with("\"")
+        {
+            res.push_str(&s[..1]);
+            s = &s[1..];
+            break;
+        }
+
+        res.push_str(&s[..1]);
+        s = &s[1..];
+        continue;
+    }
+
+    res
+}
+
+
 pub fn tokenize(file_content: &str) -> Vec<Token>
 {
     let mut s = file_content;
     let mut res = Vec::<Token>::new();
 
-    while s.len() > 0
+    'outer: while s.len() > 0
     {
         let ch = s.bytes().nth(0).unwrap();
 
@@ -104,6 +136,7 @@ pub fn tokenize(file_content: &str) -> Vec<Token>
             let val = read_whitespace(s);
             s = &s[val.len()..];
             res.push(Token::WhiteSpace(val));
+            continue 'outer;
         }
 
         for val in ["\\\n\r", "\\\r\n", "\\\n", "\\\r"].into_iter()
@@ -111,7 +144,8 @@ pub fn tokenize(file_content: &str) -> Vec<Token>
             if s.starts_with(val)
             {
                 s = &s[val.len()..];
-                res.push(Token::LineContinuation(val.to_string()));   
+                res.push(Token::LineContinuation(val.to_string()));
+                continue 'outer;
             }
         }
 
@@ -121,6 +155,7 @@ pub fn tokenize(file_content: &str) -> Vec<Token>
             {
                 s = &s[val.len()..];
                 res.push(Token::NewLine(val.to_string()));   
+                continue 'outer;
             }
         }
 
@@ -129,6 +164,7 @@ pub fn tokenize(file_content: &str) -> Vec<Token>
             let val = read_single_line_comment(s);
             s = &s[val.len()..];
             res.push(Token::Comment(val.to_string()));
+            continue 'outer;
         }
 
         if s.starts_with("/*")
@@ -136,7 +172,21 @@ pub fn tokenize(file_content: &str) -> Vec<Token>
             let val = read_multi_line_comment(s);
             s = &s[val.len()..];
             res.push(Token::Comment(val.to_string()));
-        }    }
+            continue 'outer;
+        }
+
+        if s.starts_with("\"")
+        {
+            let val = read_string(s);
+            s = &s[val.len()..];
+            res.push(Token::String(val.to_string()));
+            continue 'outer;
+        }
+
+        let val = &s[..1];
+        s = &s[1..];
+        res.push(Token::Unknown(val.to_string()));
+    }
 
     res
 }
@@ -207,6 +257,57 @@ mod test {
             Token::Comment("/* \t  \t */".to_string()),
             Token::NewLine("\n".to_string()),
             Token::WhiteSpace(" \t\t\t".to_string()),
+        ]);
+    }
+
+
+    #[test]
+    fn test_empty_string() {
+        let input = " \"\" ";
+        assert_eq!(tokenize(input), vec![
+            Token::WhiteSpace(" ".to_string()),
+            Token::String("\"\"".to_string()),
+            Token::WhiteSpace(" ".to_string()),
+        ]);
+    }
+
+    #[test]
+    fn test_string() {
+        let input = " \"abcd\" ";
+        assert_eq!(tokenize(input), vec![
+            Token::WhiteSpace(" ".to_string()),
+            Token::String("\"abcd\"".to_string()),
+            Token::WhiteSpace(" ".to_string()),
+        ]);
+    }
+
+    #[test]
+    fn test_string_with_espaced_double_quotes_1() {
+        let input = " \"\\\"abcd\" ";
+        assert_eq!(tokenize(input), vec![
+            Token::WhiteSpace(" ".to_string()),
+            Token::String("\"\\\"abcd\"".to_string()),
+            Token::WhiteSpace(" ".to_string()),
+        ]);
+    }
+
+    #[test]
+    fn test_string_with_espaced_double_quotes_2() {
+        let input = " \"ab\\\"cd\" ";
+        assert_eq!(tokenize(input), vec![
+            Token::WhiteSpace(" ".to_string()),
+            Token::String("\"ab\\\"cd\"".to_string()),
+            Token::WhiteSpace(" ".to_string()),
+        ]);
+    }
+
+    #[test]
+    fn test_string_with_espaced_double_quotes_3() {
+        let input = " \"abcd\\\"\" ";
+        assert_eq!(tokenize(input), vec![
+            Token::WhiteSpace(" ".to_string()),
+            Token::String("\"abcd\\\"\"".to_string()),
+            Token::WhiteSpace(" ".to_string()),
         ]);
     }
 }
