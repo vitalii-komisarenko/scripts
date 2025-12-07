@@ -199,7 +199,39 @@ mod test
     }
 
     #[test]
-    fn test_includes()
+    fn test_includes_1()
+    {
+        let input = "\
+#include <iostream>
+
+#include \"file.h\"
+#include <string>
+#include <string.h>
+#include <2.h>
+#include \"a/b/c.hpp\"
+#include  \t  \"abc.h\"  \t  
+#include  \t  <vector>   \t  
+#       include    <deque>   \t  
+int main()
+{
+    return 0;
+}
+";
+        assert_eq!(get_includes(input), vec![
+            "<iostream>".to_string(),
+            "\"file.h\"".to_string(),
+            "<string>".to_string(),
+            "<string.h>".to_string(),
+            "<2.h>".to_string(),
+            "\"a/b/c.hpp\"".to_string(),
+            "\"abc.h\"".to_string(),
+            "<vector>".to_string(),
+            "<deque>".to_string(),
+        ]);
+    }
+
+    #[test]
+    fn test_includes_2()
     {
         let input = "#include <iostream>\n
                     \n
@@ -210,6 +242,7 @@ mod test
                     #include \"a/b/c.hpp\"\n
                     #include  \t  \"abc.h\"  \t  \n
                     #include  \t  <vector>   \t  \n
+                    #       include    <deque>   \t  \n
                     int main()\n
                     {\n
                         return 0;\n
@@ -223,6 +256,7 @@ mod test
             "\"a/b/c.hpp\"".to_string(),
             "\"abc.h\"".to_string(),
             "<vector>".to_string(),
+            "<deque>".to_string(),
         ]);
     }
 }
