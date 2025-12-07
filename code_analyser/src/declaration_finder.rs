@@ -518,6 +518,50 @@ impl DeclarationFinder
         }
     }
 
+    fn process_extern(&mut self)
+    {
+        self.skip_identifier("extern");
+
+        if self.eof()
+        {
+            panic!("process_extren: EOF after extern");
+        }
+
+        // extern int x;
+        //        ^-------- here
+        //
+        // Parse it as ordinary `int x;`
+        if let Token::Identifier(_) = self.token() {
+            return;
+        }
+
+        // extern "C" .....
+        //        ^------- here
+        if let Token::String(_) = self.token()
+        {
+            self.skip_token(); // skip "C" after "extern"
+
+            // extern "C" int x;
+            //            ^----------- here
+            //
+            // Parse it as ordinary `int x;`
+            if let Token::Identifier(_) = self.token()
+            {
+                return;
+            }
+
+            // extern "C" { .... }
+            //            ^----------- here
+            self.skip_operator("{");
+            self.closing_curly_brackets_expected += 1;
+            return;
+        }
+        else
+        {
+            panic!("process_extren: unexpected token after `extern`: {:?}", self.token());
+        }
+    }
+
     fn find_declarations(&mut self, file_content: &str)
     {
         self.declarations = get_preprocessor_definitions(file_content);
@@ -536,6 +580,7 @@ impl DeclarationFinder
                     "using" => self.process_using(),
                     "class" | "struct" => self.process_class_or_struct(),
                     "typedef" => self.process_typedef(),
+                    "extern" => self.process_extern(),
                     "namespace" => {
                         self.skip_identifier("namespace");
                         self.skip_token(); // skip namespace name
@@ -897,5 +942,28 @@ bool operator==(const S& lhs, const S& rhs)
             int main() {}
         ";
         assert_eq!(find_declarations(input), vec!["main"]);
+    }
+
+    #[test]
+    fn test_extern() {
+        let input = "
+            extern int a;
+
+            extern \"C\" int b;
+
+            extern \"C++\" class c;
+
+            extern \"C\" {
+                int d;
+            }
+
+            extern \"C\" {
+                int e;
+                char f;
+            }
+
+            int main() {}
+        ";
+        assert_eq!(find_declarations(input), vec!["a", "b", "c", "d", "e", "f", "main"]);
     }
 }
