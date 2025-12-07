@@ -100,7 +100,7 @@ fn main() {
             }
             else {
                 let file_content = read_file_content(file_names[0].as_str());
-                for header in preprocessor::get_includes(&file_content).into_iter() {
+                for header in preprocessor::get_includes_with_brackets(&file_content).into_iter() {
                     println!("{}", header);
                 }
             }

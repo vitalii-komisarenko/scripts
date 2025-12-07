@@ -74,7 +74,7 @@ pub fn get_preprocessor_definitions(file_content: &str) -> Vec<String>
     res
 }
 
-pub fn get_includes(file_content: &str) -> Vec<String>
+pub fn get_includes_with_brackets(file_content: &str) -> Vec<String>
 {
     let mut res = Vec::<String>::new();
     let tokens = tokenize(file_content);
@@ -150,7 +150,7 @@ pub fn get_includes_without_brackets(file_content: &str) -> Vec<String>
 {
     let mut res = Vec::<String>::new();
 
-    for inc in get_includes(file_content)
+    for inc in get_includes_with_brackets(file_content)
     {
         let mut chars = inc.chars();
         chars.next();
@@ -232,7 +232,7 @@ int main()
     return 0;
 }
 ";
-        assert_eq!(get_includes(input), vec![
+        assert_eq!(get_includes_with_brackets(input), vec![
             "<iostream>".to_string(),
             "\"file.h\"".to_string(),
             "<string>".to_string(),
@@ -262,7 +262,7 @@ int main()
                     {\n
                         return 0;\n
                     }\n";
-        assert_eq!(get_includes(input), vec![
+        assert_eq!(get_includes_with_brackets(input), vec![
             "<iostream>".to_string(),
             "\"file.h\"".to_string(),
             "<string>".to_string(),
