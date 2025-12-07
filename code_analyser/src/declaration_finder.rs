@@ -1,5 +1,3 @@
-use crate::comment_remover::remove_comments;
-use crate::string_remover::remove_strings;
 use crate::tokenizer::Token;
 use crate::tokenizer::tokenize;
 
@@ -23,11 +21,7 @@ fn filter_tokens(input_tokens: Vec::<Token>) -> Vec::<Token>
             continue;
         }
 
-        if let Token::WhiteSpace(_) = token
-        {
-            // skip
-        }
-        else if let Token::NewLine(_) = token
+        if matches!(token, Token::WhiteSpace(_) | Token::NewLine(_) | Token::Comment(_))
         {
             // skip
         }
@@ -148,11 +142,8 @@ fn skip_function(tokens: &Vec<Token>, i: &mut usize)
 
 pub fn find_declarations(file_content: &str) -> Vec<String>
 {
-    let mut content = remove_comments(file_content);
-    content = remove_strings(content.as_str());
-
     let mut res = Vec::<String>::new();
-    let tokens = filter_tokens(tokenize(&content));
+    let tokens = filter_tokens(tokenize(&file_content));
 
     let mut i = 0;
     while i < tokens.len()
