@@ -91,7 +91,7 @@ impl DeclarationFinder
         self.skip_exact_token(&Token::Operator(operator.into()));
     }
 
-    fn skip_identifiier(&mut self, identifier: &str)
+    fn skip_identifier(&mut self, identifier: &str)
     {
         self.skip_exact_token(&Token::Identifier(identifier.into()));
     }
@@ -99,7 +99,7 @@ impl DeclarationFinder
     /// skip __attribute__(( ...... ))
     fn skip_attribute(&mut self)
     {
-        self.skip_identifiier("__attribute__");
+        self.skip_identifier("__attribute__");
         self.skip_bracket_pair("(", ")");
     }
 
@@ -160,8 +160,15 @@ impl DeclarationFinder
                     self.skip_token();
                     self.skip_to_operator("]");
                 }
+                else
+                {
+                    self.skip_token();
+                }
             }
-            self.skip_token();
+            else
+            {
+                self.skip_token();
+            }
         }
     }
 
@@ -361,7 +368,7 @@ impl DeclarationFinder
                     else if *self.token() == Token::Operator("{".to_string())
                     {
                         self.skip_bracket_pair("{", "}");
-                        self.skip_token(); // Skip ';'
+                        self.skip_operator(";");
                         continue;
                     }
                     else
@@ -381,19 +388,9 @@ impl DeclarationFinder
                 {
                     if s1 == "operator"
                     {
-                        self.skip_token(); // skip `operator` keyword
-                        loop
-                        {
-                            if self.eof()
-                            {
-                                panic!("find_declarations: EOF while skipping operator");
-                            }
-                            if *self.token() == Token::Operator("(".into())
-                            {
-                                break;
-                            }
-                            self.skip_token();
-                        }
+                        self.skip_identifier("operator");
+                        self.skip_to_operator("(");
+                        self.pos -= 1;
                         self.skip_function();
                     }
                     else
