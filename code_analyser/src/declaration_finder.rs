@@ -14,6 +14,21 @@ fn skip_to_operator(tokens: &Vec<Token>, i: &mut usize, operator: &str)
                 *i += 1;
                 return
             }
+            if s == "("
+            {
+                *i += 1;
+                skip_to_operator(&tokens, i, ")");
+            }
+            if s == "{"
+            {
+                *i += 1;
+                skip_to_operator(&tokens, i, "}");
+            }
+            if s == "["
+            {
+                *i += 1;
+                skip_to_operator(&tokens, i, "]");
+            }
         }
         *i += 1;
     }
@@ -34,6 +49,10 @@ pub fn find_declarations(file_content: &str) -> Vec<String>
         {
             // skip
         }
+        else if let Token::NewLine(_) = token
+        {
+            // skip
+        }
         else
         {
             tokens.push(token);
@@ -49,8 +68,32 @@ pub fn find_declarations(file_content: &str) -> Vec<String>
             if let Token::Identifier(s1) = &tokens[i]
             {
                 res.push(s1.to_string());
-                skip_to_operator(&tokens, &mut i, ";");
+                i += 1;
+                if let Token::Operator(s2) = &tokens[i]
+                {
+                    i += 1;
+                    match s2.as_str()
+                    {
+                        ";" => (),
+                        "=" => skip_to_operator(&tokens, &mut i, ";"),
+                        "(" => skip_to_operator(&tokens, &mut i, ")"),
+                        _ => panic!("Unexpected operator: {}", s2),
+                    }
+                }
             }
+        }
+        else if let Token::Operator(s) = &tokens[i]
+        {
+            match s.as_str()
+            {
+                "{" => skip_to_operator(&tokens, &mut i, "}"),
+                ";" => { i += 1; },
+                _ => panic!("Unexpected operator: {}", s),
+            }
+        }
+        else
+        {
+            panic!("Unexpected token: {:?}", &tokens[i]);
         }
     }
 
@@ -71,5 +114,21 @@ mod test {
     fn test_single_var_2() {
         let input = "int myVar = 5;";
         assert_eq!(find_declarations(input), vec!["myVar"]);
+    }
+
+    #[test]
+    fn test_simple_function_declaration() {
+        let input = "int myFunc();";
+        assert_eq!(find_declarations(input), vec!["myFunc"]);
+    }
+
+    #[test]
+    fn test_simple_function_definition() {
+        let input = "\
+int main() {\n
+    return 0;\n
+}\n
+";
+        assert_eq!(find_declarations(input), vec!["main"]);
     }
 }
