@@ -71,77 +71,78 @@ fn filter_tokens(input_tokens: Vec::<Token>) -> Vec::<Token>
     res
 }
 
-fn skip_to_operator(tokens: &Vec<Token>, i: &mut usize, operator: &str)
-{
-    while *i < tokens.len()
-    {
-        if let Token::Operator(s) = &tokens[*i]
-        {
-            if s == operator
-            {
-                *i += 1;
-                return
-            }
-            if s == "("
-            {
-                *i += 1;
-                skip_to_operator(&tokens, i, ")");
-            }
-            if s == "{"
-            {
-                *i += 1;
-                skip_to_operator(&tokens, i, "}");
-            }
-            if s == "["
-            {
-                *i += 1;
-                skip_to_operator(&tokens, i, "]");
-            }
-        }
-        *i += 1;
-    }
-}
-
-fn skip_bracket_pair(tokens: &Vec<Token>, i: &mut usize, opening_bracket: &str, closing_bracket: &str)
-{
-    if *i >= tokens.len()
-    {
-        panic!("skip_bracket_pair: {} expected, EOF found", opening_bracket);
-    }
-    *i += 1;
-
-    while *i < tokens.len()
-    {
-        let token = &tokens[*i];
-
-        if *token == Token::Operator(closing_bracket.into())
-        {
-            *i += 1;
-            return
-        }
-        else if *token == Token::Operator("(".into())
-        {
-            skip_bracket_pair(&tokens, i, "(", ")");
-        }
-        else if *token == Token::Operator("{".into())
-        {
-            skip_bracket_pair(&tokens, i, "{", "}");
-        }
-        else if *token == Token::Operator("[".into())
-        {
-            skip_bracket_pair(&tokens, i, "[", "]");
-        }
-        else
-        {
-            *i += 1;
-        }
-    }
-
-    panic!("skip_bracket_pair: EOF");
-}
-
 impl DeclarationFinder
 {
+    fn skip_to_operator(&mut self, operator: &str)
+    {
+        while !self.eof()
+        {
+            if let Token::Operator(s) = &self.token()
+            {
+                if s == operator
+                {
+                    self.skip_token();
+                    return
+                }
+                else if s == "("
+                {
+                    self.skip_token();
+                    self.skip_to_operator(")");
+                }
+                else if s == "{"
+                {
+                    self.skip_token();
+                    self.skip_to_operator("}");
+                }
+                else if s == "["
+                {
+                    self.skip_token();
+                    self.skip_to_operator("]");
+                }
+            }
+            self.skip_token();
+        }
+    }
+
+    fn skip_bracket_pair(&mut self, opening_bracket: &str, closing_bracket: &str)
+    {
+        if self.eof()
+        {
+            panic!("skip_bracket_pair: {} expected, EOF found", opening_bracket);
+        }
+
+        self.skip_token();
+
+        while !self.eof()
+        {
+            let token = self.token();
+
+            if *token == Token::Operator(closing_bracket.into())
+            {
+                self.skip_token();
+                return
+            }
+            else if *token == Token::Operator("(".into())
+            {
+                self.skip_bracket_pair("(", ")");
+            }
+            else if *token == Token::Operator("{".into())
+            {
+                self.skip_bracket_pair("{", "}");
+            }
+            else if *token == Token::Operator("[".into())
+            {
+                self.skip_bracket_pair("[", "]");
+            }
+            else
+            {
+                self.skip_token();
+            }
+        }
+
+        panic!("skip_bracket_pair: EOF");
+    }
+
     fn skip_function(&mut self)
     {
         // To handle function declarations and definitions, e.g.:
@@ -165,7 +166,7 @@ impl DeclarationFinder
 
         // 2. Skip parameter list (round brackets)
 
-        skip_bracket_pair(&self.tokens, &mut self.pos, "(", ")");
+        self.skip_bracket_pair("(", ")");
 
         // 3. Check if the next token if ';' or '{'
 
@@ -186,7 +187,7 @@ impl DeclarationFinder
                 "{" => {
                     // 4B. It is a function definition. Skip curly brackets
                     self.skip_token();
-                    skip_to_operator(&self.tokens, &mut self.pos, "}");
+                    self.skip_to_operator("}");
                     return;
                 }
                 _ => panic!("skip_function: ';' or '{{' expected, {:?} found", self.token()),
@@ -217,7 +218,7 @@ impl DeclarationFinder
                         match s2.as_str()
                         {
                             ";" => {self.pos += 1},
-                            "=" => skip_to_operator(&self.tokens, &mut self.pos, ";"),
+                            "=" => self.skip_to_operator(";"),
                             "(" => self.skip_function(),
                             _ => panic!("Unexpected operator: {}", s2),
                         }
@@ -228,14 +229,14 @@ impl DeclarationFinder
             {
                 match s.as_str()
                 {
-                    "{" => skip_bracket_pair(&self.tokens, &mut self.pos, "{", "}"),
-                    ";" => { self.pos += 1; },
+                    "{" => self.skip_bracket_pair("{", "}"),
+                    ";" => self.skip_token(),
                     _ => panic!("Unexpected operator: {}", s),
                 }
             }
             else
             {
-                panic!("Unexpected token: {:?}", &self.tokens[self.pos]);
+                panic!("Unexpected token: {:?}", self.token());
             }
         }
     }
