@@ -471,4 +471,29 @@ class Y final: public X
 ";
         assert_eq!(find_declarations(input), vec!["X", "Y"]);
     }
+
+
+    #[test]
+    fn test_template_with_template_parameter() {
+        let input = "\
+#include <functional>
+#include <string>
+#include <vector>
+
+template <class T=std::hash<std::vector<std::string>>>
+class myClass
+{
+public:
+    T a;
+    T b() {
+        return T();
+    }
+};
+
+int main()
+{
+};
+";
+        assert_eq!(find_declarations(input), vec!["myClass", "main"]);
+    }
 }
