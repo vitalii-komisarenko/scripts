@@ -3,7 +3,7 @@ use std::string::String;
 
 #[derive(Debug)]
 #[derive(PartialEq)]
-enum Token
+pub enum Token
 {
     // A token that is not properly parsed
     Unknown(String),
