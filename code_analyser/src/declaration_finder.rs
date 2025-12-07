@@ -113,7 +113,7 @@ impl DeclarationFinder
     }
 
     /// Skip content inside `<` and `>` (including the closing `>`)
-    fn skip_template(&mut self)
+    fn skip_template_brackets(&mut self)
     {
         self.skip_operator("<");
 
@@ -126,7 +126,7 @@ impl DeclarationFinder
                     "(" => self.skip_bracket_pair("(", ")"),
                     "{" => self.skip_bracket_pair("{", "}"),
                     "[" => self.skip_bracket_pair("[", "]"),
-                    "<" => self.skip_template(),
+                    "<" => self.skip_template_brackets(),
                     ">" => {
                         self.skip_token();
                         return;
@@ -140,7 +140,7 @@ impl DeclarationFinder
             }
         }
 
-        panic!("skip_template: EOF");
+        panic!("skip_template_brackets: EOF");
     }
 
     fn skip_to_operator(&mut self, operator: &str)
@@ -362,7 +362,7 @@ impl DeclarationFinder
 
             if *self.token() == Token::Operator("<".into())
             {
-                self.skip_template();
+                self.skip_template_brackets();
                 continue;
             }
 
@@ -394,7 +394,7 @@ impl DeclarationFinder
             if *self.token() == Token::Identifier("template".into())
             {
                 self.skip_identifier("template");
-                self.skip_template();
+                self.skip_template_brackets();
             }
             else if *self.token() == Token::Identifier("using".into())
             {
