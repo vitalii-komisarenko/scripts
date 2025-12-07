@@ -3,6 +3,54 @@ use crate::string_remover::remove_strings;
 use crate::tokenizer::Token;
 use crate::tokenizer::tokenize;
 
+/// Filter out unneeded tokens to simplify processing
+///
+/// 1. Remove preprocessor directives
+/// 2. Remove whitespace (Token::WhiteSpace and Token::NewLine)
+fn filter_tokens(input_tokens: Vec::<Token>) -> Vec::<Token>
+{
+    let mut res = Vec::<Token>::new();
+    let mut is_in_preprocessor = false;
+
+    for token in input_tokens.into_iter()
+    {
+        if is_in_preprocessor
+        {
+            if let Token::NewLine(_) = token
+            {
+                is_in_preprocessor = false;
+            }
+            continue;
+        }
+
+        if let Token::WhiteSpace(_) = token
+        {
+            // skip
+        }
+        else if let Token::NewLine(_) = token
+        {
+            // skip
+        }
+        else if let Token::Operator(s) = token
+        {
+            if s == "#"
+            {
+                is_in_preprocessor = true;
+            }
+            else
+            {
+                res.push(Token::Operator(s));
+            }
+        }
+        else
+        {
+            res.push(token);
+        }
+    }
+
+    res
+}
+
 fn skip_to_operator(tokens: &Vec<Token>, i: &mut usize, operator: &str)
 {
     while *i < tokens.len()
@@ -104,24 +152,7 @@ pub fn find_declarations(file_content: &str) -> Vec<String>
     content = remove_strings(content.as_str());
 
     let mut res = Vec::<String>::new();
-    let tokens_with_whitespace = tokenize(&content);
-
-    let mut tokens = Vec::<Token>::new();
-    for token in tokens_with_whitespace.into_iter()
-    {
-        if let Token::WhiteSpace(_) = token
-        {
-            // skip
-        }
-        else if let Token::NewLine(_) = token
-        {
-            // skip
-        }
-        else
-        {
-            tokens.push(token);
-        }
-    }
+    let tokens = filter_tokens(tokenize(&content));
 
     let mut i = 0;
     while i < tokens.len()
@@ -193,5 +224,24 @@ int main() {\n
 }\n
 ";
         assert_eq!(find_declarations(input), vec!["main"]);
+    }
+
+    #[test]
+    fn test_ignoring_preprocessor_directives() {
+        let input = "\
+#pragma once
+
+#ifdef A
+#     define B
+#endif
+
+/*
+ * @brief a function returning -123
+ */
+int myFunc123() {
+    return -123;
+}
+";
+        assert_eq!(find_declarations(input), vec!["myFunc123"]);
     }
 }
