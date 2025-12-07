@@ -38,7 +38,7 @@ fn filter_tokens(input_tokens: Vec::<Token>) -> Vec::<Token>
     let mut res = Vec::<Token>::new();
     let mut is_in_preprocessor = false;
 
-    for token in input_tokens.into_iter()
+    'outer: for token in input_tokens.into_iter()
     {
         if is_in_preprocessor
         {
@@ -71,7 +71,7 @@ fn filter_tokens(input_tokens: Vec::<Token>) -> Vec::<Token>
                 if s == keyword
                 {
                     // skip
-                    continue;
+                    continue 'outer;
                 }
             }
 
@@ -428,8 +428,16 @@ impl DeclarationFinder
 
         if let Token::Identifier(s) = self.token()
         {
-            self.declarations.push(s.to_string());
-            self.skip_token(); // class/struct name already processed
+            let s1 = s.clone();
+            self.skip_token();
+            if let Token::Identifier(s2) = self.token()
+            {
+                self.declarations.push(s2.to_string().clone());
+            }
+            else
+            {
+                self.declarations.push(s1.to_string().clone());
+            }
         }
 
         while (*self.token() != Token::Operator(";".to_string())) && (*self.token() != Token::Operator("{".to_string()))
