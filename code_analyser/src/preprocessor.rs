@@ -74,6 +74,78 @@ pub fn get_preprocessor_definitions(file_content: &str) -> Vec<String>
     res
 }
 
+pub fn get_includes(file_content: &str) -> Vec<String>
+{
+    let mut res = Vec::<String>::new();
+    let tokens = tokenize(file_content);
+    let mut state = State::LookingForOctothorp;
+    let mut new_include = String::new();
+
+    for token in tokens.into_iter()
+    {
+        if state == State::LookingForOctothorp
+        {
+            if let Token::Operator(s) = token
+            {
+                if s == "#".to_string()
+                {
+                    state = State::LookingForDefineWord;
+                }
+            }
+
+            continue;
+        }
+
+        if state == State::LookingForDefineWord
+        {
+            if let Token::Identifier(s) = token
+            {
+                if s == "include".to_string()
+                {
+                    state = State::LookingForNewLine;
+                    continue;
+                }
+            }
+            else if let Token::WhiteSpace(_) = token
+            {
+                continue;
+            }
+
+            state = State::LookingForOctothorp;
+            continue;
+        }
+
+        if state == State::LookingForNewLine
+        {
+            if let Token::NewLine(s) = token
+            {
+                res.push(new_include);
+                new_include = String::new();
+                state = State::LookingForOctothorp;
+            }
+            else if let Token::String(s) = token
+            {
+                new_include.push_str(&s)
+            }
+            else if let Token::Operator(s) = token
+            {
+                new_include.push_str(&s)
+            }
+            else if let Token::Identifier(s) = token
+            {
+                new_include.push_str(&s)
+            }
+            else if let Token::Number(s) = token
+            {
+                new_include.push_str(&s)
+            }
+            continue;
+        }
+    }
+
+    res
+}
+
 #[cfg(test)]
 mod test
 {
@@ -123,6 +195,34 @@ mod test
             "C".to_string(),
             "define".to_string(),
             "X".to_string(),
+        ]);
+    }
+
+    #[test]
+    fn test_includes()
+    {
+        let input = "#include <iostream>\n
+                    \n
+                    #include \"file.h\"\n
+                    #include <string>\n
+                    #include <string.h>\n
+                    #include <2.h>\n
+                    #include \"a/b/c.hpp\"\n
+                    #include  \t  \"abc.h\"  \t  \n
+                    #include  \t  <vector>   \t  \n
+                    int main()\n
+                    {\n
+                        return 0;\n
+                    }\n";
+        assert_eq!(get_includes(input), vec![
+            "<iostream>".to_string(),
+            "\"file.h\"".to_string(),
+            "<string>".to_string(),
+            "<string.h>".to_string(),
+            "<2.h>".to_string(),
+            "\"a/b/c.hpp\"".to_string(),
+            "\"abc.h\"".to_string(),
+            "<vector>".to_string(),
         ]);
     }
 }

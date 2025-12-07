@@ -14,6 +14,7 @@ enum Task {
     PrintHelp,
     RemoveComments,
     RemoveCommentsAndStrings,
+    PrintIncludes,
 }
 
 fn print_help() {
@@ -24,6 +25,8 @@ fn print_help() {
     println!("        Remove comments from a single C/C++/header file, prints output to the standard output");
     println!("    --remove-comments-and-strings <filename>");
     println!("        Remove comments, strings and chars from a single C/C++/header file, prints output to the standard output");
+    println!("    --print-includes <filename>");
+    println!("        Print headers used in #include directives");
 }
 
 fn read_file_content(path: &str) -> String
@@ -47,6 +50,7 @@ fn main() {
                 "--help" => task = Task::PrintHelp,
                 "--remove-comments" => task = Task::RemoveComments,
                 "--remove-comments-and-strings" => task = Task::RemoveCommentsAndStrings,
+                "--print-includes" => task = Task::PrintIncludes,
                 _ => {
                     print_help();
                     process::exit(1);
@@ -83,5 +87,17 @@ fn main() {
                 print!("{}", without_comments_and_strings);
             }
         },
+        Task::PrintIncludes => {
+            if file_names.len() != 1 {
+                println!("Only one file name expected");
+                process::exit(1);
+            }
+            else {
+                let file_content = read_file_content(file_names[0].as_str());
+                for header in preprocessor::get_includes(&file_content).into_iter() {
+                    println!("{}", header);
+                }
+            }
+        }
     }
 }
