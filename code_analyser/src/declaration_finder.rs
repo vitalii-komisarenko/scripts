@@ -384,6 +384,49 @@ impl DeclarationFinder
         panic!("get_declaration: EOF");
     }
 
+    fn process_class_or_struct(&mut self)
+    {
+        self.skip_token(); // skip `class`/`struct` keyword
+        if self.eof()
+        {
+            panic!("process_class_or_struct: EOF while reading class/struct name");
+        }
+        if let Token::Identifier(s) = self.token()
+        {
+            self.declarations.push(s.to_string());
+            self.skip_token(); // class/struct name already processed
+
+            while (*self.token() != Token::Operator(";".to_string())) && (*self.token() != Token::Operator("{".to_string()))
+            {
+                if self.eof()
+                {
+                    panic!("process_class_or_struct: EOF while parsing class/struct: ';' or '{{' needed");
+                }
+                self.skip_token();
+            }
+
+            if *self.token() == Token::Operator(";".to_string())
+            {
+                self.skip_token();
+                return;
+            }
+            else if *self.token() == Token::Operator("{".to_string())
+            {
+                self.skip_bracket_pair("{", "}");
+                self.skip_operator(";");
+                return;
+            }
+            else
+            {
+                panic!("process_class_or_struct: unexpected token after class/struct name: {:?}", self.token());
+            }
+        }
+        else
+        {
+            panic!("process_class_or_struct: Unexpected token while reading class/struct name: {:?}", self.token())
+        }
+    }
+
     fn find_declarations(&mut self, file_content: &str)
     {
         self.declarations = get_preprocessor_definitions(file_content);
@@ -416,45 +459,7 @@ impl DeclarationFinder
             }
             else if *self.token() == Token::Identifier("class".into()) || *self.token() == Token::Identifier("struct".into())
             {
-                self.skip_token(); // skip `class`/`struct` keyword
-                if self.eof()
-                {
-                    panic!("find_declarations: EOF while reading class/struct name");
-                }
-                if let Token::Identifier(s) = self.token()
-                {
-                    self.declarations.push(s.to_string());
-                    self.skip_token(); // class/struct name already processed
-
-                    while (*self.token() != Token::Operator(";".to_string())) && (*self.token() != Token::Operator("{".to_string()))
-                    {
-                        if self.eof()
-                        {
-                            panic!("find_declarations: EOF while parsing class/struct: ';' or '{{' needed");
-                        }
-                        self.skip_token();
-                    }
-
-                    if *self.token() == Token::Operator(";".to_string())
-                    {
-                        self.skip_token();
-                        continue;
-                    }
-                    else if *self.token() == Token::Operator("{".to_string())
-                    {
-                        self.skip_bracket_pair("{", "}");
-                        self.skip_operator(";");
-                        continue;
-                    }
-                    else
-                    {
-                        panic!("find_declarations: unexpected token after class/struct name: {:?}", self.token());
-                    }
-                }
-                else
-                {
-                    panic!("find_declarations: Unexpected token while reading class/struct name: {:?}", self.token())
-                }
+                self.process_class_or_struct();
             }
             else if let Token::Identifier(s) = &self.tokens[self.pos]
             {
