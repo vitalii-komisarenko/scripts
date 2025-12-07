@@ -280,7 +280,7 @@ impl DeclarationFinder
             }
         }
 
-        panic!("skip_to_operator_inclusive: EOF");
+        panic!("skip_to_operator_inclusive: EOF while looking for operator {}", operator);
     }
 
     fn skip_bracket_pair(&mut self, opening_bracket: &str, closing_bracket: &str)
@@ -405,44 +405,52 @@ impl DeclarationFinder
                     "__attribute__" => self.skip_attribute(),
                     "operator" => {
                         // We need to check if `operator` is a variable name in C or an operator in C++
-                        if self.pos < self.tokens.len() - 1
+                        self.skip_identifier("operator");
+                        self.assert_not_eof("EOF after `operator`");
+
+                        if let Token::Operator(s) = self.token()
                         {
-                            if let Token::Operator(s) = &self.tokens[self.pos + 1]
+                            match s.as_str()
                             {
-                                match s.as_str()
-                                {
-                                    ";" | "(" => {
-                                        // It is a declaration of variable `operator` or function `operator( ... )`
-                                        last_identifier = "operator".into();
-                                        self.skip_token();
-                                        continue;
-                                    },
-                                    "=" => {
-                                        if (self.pos < self.tokens.len() - 1) && (self.tokens[self.pos + 2] == Token::Operator("=".into()))
-                                        {
-                                            // It is `operator ==`
-                                            self.skip_token();
-                                            last_identifier = "".into();
-                                            continue;
-                                        }
-                                        else {
-                                            // It is assignemnt to variable `operator`
-                                            last_identifier = "operator".into();
-                                            self.skip_token();
-                                            continue;
-                                        }
-                                    },
-                                    _ => {
-                                        // It is an operator overload in C++
-                                        self.skip_token();
+                                ";" | "(" => {
+                                    // It is a declaration of variable `operator` or function `operator( ... )`
+                                    last_identifier = "operator".into();
+                                    continue;
+                                },
+                                "=" => {
+                                    self.skip_operator("=");
+                                    self.assert_not_eof("EOF after `operator=` or `operator =`");
+                                    if *self.token() == Token::Operator("=".into())
+                                    {
+                                        // It is `operator ==`
+                                        self.skip_operator("=");
                                         last_identifier = "".into();
                                         continue;
                                     }
+                                    else {
+                                        // It is assignemnt to variable `operator`
+                                        last_identifier = "operator".into();
+                                        self.skip_token();
+                                        continue;
+                                    }
+                                },
+                                _ => {
+                                    // It is an operator overload in C++
+                                    self.skip_token();
+                                    if let Token::Operator(s) = self.token()
+                                    {
+                                        if s != "("
+                                        {
+                                            self.skip_token();
+                                        }
+                                    }
+                                    last_identifier = "".into();
+                                    continue;
                                 }
                             }
-                            else {
-                                panic!();
-                            }
+                        }
+                        else {
+                            panic!();
                         }
                     },
                     _ => {
@@ -934,6 +942,25 @@ bool operator==(const S& lhs, const S& rhs)
     return lhs.name == rhs.name;
 }";
         assert_eq!(find_declarations(input), vec!["S"]);
+    }
+
+    #[test]
+    fn test_operator_2() {
+        let input = "
+            #include <string>
+
+            struct S
+            {
+                std::string name;
+            };
+
+            bool operator==(const S& lhs, const S& rhs);
+            bool operator<(const S& lhs, const S& rhs) { return true; }
+            bool operator++(S&);
+
+            int main() {}
+        ";
+        assert_eq!(find_declarations(input), vec!["S", "main"]);
     }
 
     #[test]
