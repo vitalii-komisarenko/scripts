@@ -91,6 +91,9 @@ fn read_multi_line_comment(mut s: &str) -> String
 {
     let mut res = String::new();
 
+    res.push_str(&s[..2]);
+    s = &s[2..];
+
     while s.len() > 0
     {
         if s.starts_with("*/")
@@ -441,6 +444,15 @@ mod test {
         ]);
     }
 
+    #[test]
+    fn test_multi_line_comment_overlapping_begin_and_end() {
+        let input = "    /*/  /* */\t\t\t";
+        assert_eq!(tokenize(input), vec![
+            Token::WhiteSpace("    ".to_string()),
+            Token::Comment("/*/  /* */".to_string()),
+            Token::WhiteSpace("\t\t\t".to_string()),
+        ]);
+    }
 
     #[test]
     fn test_empty_string() {
