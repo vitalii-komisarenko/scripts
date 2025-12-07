@@ -77,6 +77,44 @@ fn skip_to_operator(tokens: &Vec<Token>, i: &mut usize, operator: &str)
     }
 }
 
+fn skip_bracket_pair(tokens: &Vec<Token>, i: &mut usize, opening_bracket: &str, closing_bracket: &str)
+{
+    if *i >= tokens.len()
+    {
+        panic!("skip_bracket_pair: {} expected, EOF found", opening_bracket);
+    }
+    *i += 1;
+
+    while *i < tokens.len()
+    {
+        let token = &tokens[*i];
+
+        if *token == Token::Operator(closing_bracket.into())
+        {
+            *i += 1;
+            return
+        }
+        else if *token == Token::Operator("(".into())
+        {
+            skip_bracket_pair(&tokens, i, "(", ")");
+        }
+        else if *token == Token::Operator("{".into())
+        {
+            skip_bracket_pair(&tokens, i, "{", "}");
+        }
+        else if *token == Token::Operator("[".into())
+        {
+            skip_bracket_pair(&tokens, i, "[", "]");
+        }
+        else
+        {
+            *i += 1;
+        }
+    }
+
+    panic!("skip_bracket_pair: EOF");
+}
+
 fn skip_function(tokens: &Vec<Token>, i: &mut usize)
 {
     // To handle function declarations and definitions, e.g.:
@@ -107,8 +145,7 @@ fn skip_function(tokens: &Vec<Token>, i: &mut usize)
 
     // 2. Skip parameter list (round brackets)
 
-    *i += 1;
-    skip_to_operator(&tokens, i, ")");
+    skip_bracket_pair(&tokens, i, "(", ")");
 
     // 3. Check if the next token if ';' or '{'
 
@@ -172,7 +209,7 @@ pub fn find_declarations(file_content: &str) -> Vec<String>
         {
             match s.as_str()
             {
-                "{" => skip_to_operator(&tokens, &mut i, "}"),
+                "{" => skip_bracket_pair(&tokens, &mut i, "{", "}"),
                 ";" => { i += 1; },
                 _ => panic!("Unexpected operator: {}", s),
             }
