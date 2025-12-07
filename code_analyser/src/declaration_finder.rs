@@ -437,6 +437,11 @@ impl DeclarationFinder
                 },
             }
         }
+        else if *self.token() == Token::Operator(":".into())
+        {
+            // using ::some_namespace::some_type;
+            self.skip_to_operator(";");
+        }
         else
         {
             panic!("find_declarations: Identifier expected after `using` but {:?} found", self.token());
@@ -965,5 +970,16 @@ bool operator==(const S& lhs, const S& rhs)
             int main() {}
         ";
         assert_eq!(find_declarations(input), vec!["a", "b", "c", "d", "e", "f", "main"]);
+    }
+
+    #[test]
+    fn test_using_outer_namespace() {
+        let input = "
+        using namespace std;
+        using ::some_outer_namespace::some_type;
+
+        int main() {}
+        ";
+        assert_eq!(find_declarations(input), vec!["main"]);
     }
 }
