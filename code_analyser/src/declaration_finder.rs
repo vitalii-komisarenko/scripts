@@ -2,6 +2,13 @@ use crate::tokenizer::Token;
 use crate::tokenizer::tokenize;
 use crate::preprocessor::get_preprocessor_definitions;
 
+struct DeclarationFinder
+{
+    tokens: Vec<Token>,
+    pos: usize,
+    declarations: Vec<String>,
+}
+
 /// Filter out unneeded tokens to simplify processing
 ///
 /// 1. Remove preprocessor directives
@@ -178,49 +185,61 @@ fn skip_function(tokens: &Vec<Token>, i: &mut usize)
     }
 }
 
-pub fn find_declarations(file_content: &str) -> Vec<String>
+impl DeclarationFinder
 {
-    let mut res = get_preprocessor_definitions(file_content);
-    let tokens = filter_tokens(tokenize(&file_content));
-
-    let mut i = 0;
-    while i < tokens.len()
+    fn find_declarations(&mut self, file_content: &str)
     {
-        if let Token::Identifier(s) = &tokens[i]
+        self.declarations = get_preprocessor_definitions(file_content);
+        let tokens = filter_tokens(tokenize(&file_content));
+
+        let mut i = 0;
+        while i < tokens.len()
         {
-            i += 1;
-            if let Token::Identifier(s1) = &tokens[i]
+            if let Token::Identifier(s) = &tokens[i]
             {
-                res.push(s1.to_string());
                 i += 1;
-                if let Token::Operator(s2) = &tokens[i]
+                if let Token::Identifier(s1) = &tokens[i]
                 {
-                    match s2.as_str()
+                    self.declarations.push(s1.to_string());
+                    i += 1;
+                    if let Token::Operator(s2) = &tokens[i]
                     {
-                        ";" => {i += 1},
-                        "=" => skip_to_operator(&tokens, &mut i, ";"),
-                        "(" => skip_function(&tokens, &mut i),
-                        _ => panic!("Unexpected operator: {}", s2),
+                        match s2.as_str()
+                        {
+                            ";" => {i += 1},
+                            "=" => skip_to_operator(&tokens, &mut i, ";"),
+                            "(" => skip_function(&tokens, &mut i),
+                            _ => panic!("Unexpected operator: {}", s2),
+                        }
                     }
                 }
             }
-        }
-        else if let Token::Operator(s) = &tokens[i]
-        {
-            match s.as_str()
+            else if let Token::Operator(s) = &tokens[i]
             {
-                "{" => skip_bracket_pair(&tokens, &mut i, "{", "}"),
-                ";" => { i += 1; },
-                _ => panic!("Unexpected operator: {}", s),
+                match s.as_str()
+                {
+                    "{" => skip_bracket_pair(&tokens, &mut i, "{", "}"),
+                    ";" => { i += 1; },
+                    _ => panic!("Unexpected operator: {}", s),
+                }
+            }
+            else
+            {
+                panic!("Unexpected token: {:?}", &tokens[i]);
             }
         }
-        else
-        {
-            panic!("Unexpected token: {:?}", &tokens[i]);
-        }
     }
+}
 
-    res
+pub fn find_declarations(file_content: &str) -> Vec<String>
+{
+    let mut d = DeclarationFinder {
+        tokens: Vec::<Token>::new(),
+        pos: 0,
+        declarations: Vec::<String>::new(),
+    };
+    d.find_declarations(file_content);
+    d.declarations
 }
 
 #[cfg(test)]
