@@ -569,7 +569,6 @@ impl DeclarationFinder
             {
                 match s.as_str()
                 {
-                    "{" => self.skip_bracket_pair("{", "}"),
                     "}" => {
                         if self.closing_curly_brackets_expected > 0 {
                             self.closing_curly_brackets_expected -= 1;
