@@ -252,6 +252,38 @@ impl DeclarationFinder
                 self.skip_token(); // skip `template` keyword
                 self.skip_template();
             }
+            else if (*self.token() == Token::Identifier("class".into()) || *self.token() == Token::Identifier("struct".into()))
+            {
+                self.skip_token(); // skip `class`/`struct` keyword
+                if self.eof()
+                {
+                    panic!("find_declarations: EOF while reading class/struct name");
+                }
+                if let Token::Identifier(s) = self.token()
+                {
+                    self.declarations.push(s.to_string());
+                    self.skip_token(); // class/struct name already processed
+                    if *self.token() == Token::Operator(";".to_string())
+                    {
+                        self.skip_token();
+                        continue;
+                    }
+                    else if *self.token() == Token::Operator("{".to_string())
+                    {
+                        self.skip_bracket_pair("{", "}");
+                        self.skip_token(); // Skip ';'
+                        continue;
+                    }
+                    else
+                    {
+                        panic!("find_declarations: unexpected token after class/struct name: {:?}", self.token());
+                    }
+                }
+                else
+                {
+                    panic!("find_declarations: Unexpected token while reading class/struct name: {:?}", self.token())
+                }
+            }
             else if let Token::Identifier(s) = &self.tokens[self.pos]
             {
                 self.pos += 1;
@@ -374,5 +406,29 @@ int main()
     std::cout << function<std::vector<std::vector<std::string>>, 3>() << \"\\n\";
 }";
         assert_eq!(find_declarations(input), vec!["function", "main"]);
+    }
+
+    #[test]
+    fn test_class_forward_declaration() {
+        let input = "\
+struct X;
+class Y;
+";
+        assert_eq!(find_declarations(input), vec!["X", "Y"]);
+    }
+
+    #[test]
+    fn test_class_simple_definitions() {
+        let input = "\
+struct X
+{
+};
+class Y
+{
+    int a;
+    void b();
+}
+";
+        assert_eq!(find_declarations(input), vec!["X", "Y"]);
     }
 }
