@@ -7,6 +7,7 @@ struct DeclarationFinder
     tokens: Vec<Token>,
     pos: usize,
     declarations: Vec<String>,
+    closing_curly_brackets_expected: usize,
 }
 
 impl DeclarationFinder
@@ -511,6 +512,12 @@ impl DeclarationFinder
                     "using" => self.process_using(),
                     "class" | "struct" => self.process_class_or_struct(),
                     "typedef" => self.process_typedef(),
+                    "namespace" => {
+                        self.skip_identifier("namespace");
+                        self.skip_token(); // skip namespace name
+                        self.skip_operator("{");
+                        self.closing_curly_brackets_expected += 1;
+                    },
                     _ => {
                         if let Some(declaration) = self.get_declaration()
                         {
@@ -539,7 +546,16 @@ impl DeclarationFinder
                 match s.as_str()
                 {
                     "{" => self.skip_bracket_pair("{", "}"),
-                    ";" => self.skip_token(),
+                    "}" => {
+                        if self.closing_curly_brackets_expected > 0 {
+                            self.closing_curly_brackets_expected -= 1;
+                            self.skip_operator("}");
+                        }
+                        else {
+                            panic!("closing_curly_brackets_expected = 0, but }} found");
+                        }
+                    }
+                    ";" => self.skip_operator(";"),
                     _ => panic!("Unexpected operator: {}", s),
                 }
             }
@@ -557,6 +573,7 @@ pub fn find_declarations(file_content: &str) -> Vec<String>
         tokens: Vec::<Token>::new(),
         pos: 0,
         declarations: Vec::<String>::new(),
+        closing_curly_brackets_expected: 0,
     };
     d.find_declarations(file_content);
     d.declarations
