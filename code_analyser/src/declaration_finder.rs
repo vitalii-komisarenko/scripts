@@ -351,6 +351,12 @@ impl DeclarationFinder
                 }
             }
 
+            if *self.token() == Token::Operator("<".into())
+            {
+                self.skip_template();
+                continue;
+            }
+
             for op in final_operators
             {
                 if *self.token() == Token::Operator(op.into())
@@ -543,11 +549,14 @@ int function()
     return Y;
 }
 
+std::vector<int> vec1 = {1, 2, 3};
+std::vector<std::vector<int>> vec2;
+
 int main()
 {
     std::cout << function<std::vector<std::vector<std::string>>, 3>() << \"\\n\";
 }";
-        assert_eq!(find_declarations(input), vec!["function", "main"]);
+        assert_eq!(find_declarations(input), vec!["function", "vec1", "vec2", "main"]);
     }
 
     #[test]
