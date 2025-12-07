@@ -384,6 +384,25 @@ impl DeclarationFinder
         panic!("get_declaration: EOF");
     }
 
+    fn process_using(&mut self)
+    {
+        self.skip_identifier("using");
+        if let Token::Identifier(s) = self.token()
+        {
+            match s.as_str(){
+                "namespace" => self.skip_to_operator(";"),
+                _ => {
+                    self.declarations.push(s.to_string());
+                    self.skip_to_operator(";");
+                },
+            }
+        }
+        else
+        {
+            panic!("find_declarations: Identifier expected after `using` but {:?} found", self.token());
+        }
+    }
+
     fn process_class_or_struct(&mut self)
     {
         self.skip_token(); // skip `class`/`struct` keyword
@@ -434,53 +453,37 @@ impl DeclarationFinder
 
         while !self.eof()
         {
-            if *self.token() == Token::Identifier("template".into())
+            if let Token::Identifier(s) = self.token()
             {
-                self.skip_identifier("template");
-                self.skip_template_brackets();
-            }
-            else if *self.token() == Token::Identifier("using".into())
-            {
-                self.skip_identifier("using");
-                if let Token::Identifier(s) = self.token()
+                match s.as_str()
                 {
-                    match s.as_str(){
-                        "namespace" => self.skip_to_operator(";"),
-                        _ => {
-                            self.declarations.push(s.to_string());
-                            self.skip_to_operator(";");
-                        },
-                    }
-                }
-                else
-                {
-                    panic!("find_declarations: Identifier expected after `using` but {:?} found", self.token());
-                }
-            }
-            else if *self.token() == Token::Identifier("class".into()) || *self.token() == Token::Identifier("struct".into())
-            {
-                self.process_class_or_struct();
-            }
-            else if let Token::Identifier(s) = &self.tokens[self.pos]
-            {
-                if let Some(declaration) = self.get_declaration()
-                {
-                    self.declarations.push(declaration);
-                }
+                    "template" => {
+                        self.skip_identifier("template");
+                        self.skip_template_brackets();
+                    },
+                    "using" => self.process_using(),
+                    "class" | "struct" => self.process_class_or_struct(),
+                    _ => {
+                        if let Some(declaration) = self.get_declaration()
+                        {
+                            self.declarations.push(declaration);
+                        }
 
-                if let Token::Operator(s2) = &self.tokens[self.pos]
-                {
-                    match s2.as_str()
-                    {
-                        ";" => {self.pos += 1},
-                        "=" => self.skip_to_operator(";"),
-                        "(" => self.skip_function(),
-                        _ => panic!("Unexpected operator: {}", s2),
-                    }
-                }
-                else
-                {
-                    panic!("find_declarations: Unexpected token {:?}", self.token());
+                        if let Token::Operator(s2) = &self.tokens[self.pos]
+                        {
+                            match s2.as_str()
+                            {
+                                ";" => {self.pos += 1},
+                                "=" => self.skip_to_operator(";"),
+                                "(" => self.skip_function(),
+                                _ => panic!("Unexpected operator: {}", s2),
+                            }
+                        }
+                        else
+                        {
+                            panic!("find_declarations: Unexpected token {:?}", self.token());
+                        }
+                    },
                 }
             }
             else if let Token::Operator(s) = &self.tokens[self.pos]
