@@ -2,6 +2,7 @@
 mod comment_remover;
 mod string_remover;
 mod statement_tree;
+mod tokenizer;
 
 use std::env;
 use std::fs;
